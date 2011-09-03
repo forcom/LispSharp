@@ -6,7 +6,7 @@ using System.Text;
 namespace Lisp {
     class Program {
         static void Main ( string [ ] args ) {
-            new lisp ( ).Start ( );
+            new Lisp ( ).Start ( );
         }
     }
 }
