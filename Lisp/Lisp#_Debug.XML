@@ -1,0 +1,346 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Lisp</name>
+    </assembly>
+    <members>
+        <member name="T:Lisp.Program.Lisp">
+            <summary>
+            <c>Lisp</c> class is a entry class.
+            </summary>
+        </member>
+        <member name="T:Lisp.TokenType">
+            <summary>
+            TokenTypes
+            </summary>
+            <remarks>When the lisp code is tokened, to identify the token's information.</remarks>
+        </member>
+        <member name="F:Lisp.TokenType.Unknown">
+            <summary>
+            Unknown Token Type
+            </summary>
+        </member>
+        <member name="F:Lisp.TokenType.OpenParenthesis">
+            <summary>
+            OpenParenthesis. ({[
+            </summary>
+        </member>
+        <member name="F:Lisp.TokenType.CloseParenthesis">
+            <summary>
+            CloseParenthesis. )}]
+            </summary>
+        </member>
+        <member name="F:Lisp.TokenType.Number">
+            <summary>
+            Number. 0-9
+            </summary>
+        </member>
+        <member name="F:Lisp.TokenType.String">
+            <summary>
+            String
+            </summary>
+        </member>
+        <member name="F:Lisp.TokenType.Symbol">
+            <summary>
+            Symbol
+            </summary>
+        </member>
+        <member name="T:Lisp.Node">
+            <summary>
+            Node.
+            </summary>
+            <remarks>After the tokenizing is over, <c>LispParser</c> would make a lisp tree.
+            To make lisp tree, <c>Node</c> will be used</remarks>
+        </member>
+        <member name="M:Lisp.Node.#ctor(Lisp.TokenType,System.Int32,System.Object)">
+            <summary>
+            Node Constructor
+            </summary>
+            <param name="type">Type of <c>Node</c></param>
+            <param name="offset">Position from the source</param>
+            <param name="value">Value of <c>Node</c></param>
+            <remarks>Default value of <c>Node</c> is a Unknown typed NULL Node.
+            Default source code position is -1.</remarks>
+        </member>
+        <member name="M:Lisp.Node.ToString">
+            <summary>
+            (Override) ToString Method
+            </summary>
+            <returns>Returns value of <c>Node</c></returns>
+        </member>
+        <member name="P:Lisp.Node.Value">
+            <summary>
+            Node's Value
+            </summary>
+            <remarks>It can be Number, String, or Symbol.
+            It is defined by <c>TokenType</c>.</remarks>
+        </member>
+        <member name="P:Lisp.Node.Offset">
+            <summary>
+            Position from the source.
+            </summary>
+            <remarks>Count from the head of the code.</remarks>
+        </member>
+        <member name="P:Lisp.Node.NodeType">
+            <summary>
+            Type of <c>Node</c>
+            </summary>
+        </member>
+        <member name="T:Lisp.LispParser">
+            <summary>
+            Lisp# Parser Implements
+            </summary>
+            <example>
+            Usage:
+             - To parse lisp# code
+            <code>
+                LispParser parser = new LispParser( );
+                List&lt;object&gt; parsedLisp = parser.parse ( "(a ((b c) d e))" );
+            </code>
+            
+             - [Debug Mode] To identify parsed code.
+            <code>
+                //This code will recreate lisp# code.
+                Console.WriteLine( LispParser.TestParsed ( parsedLisp ) );
+                //This code will show the type of Lisp# members.
+                Console.WriteLine( LispParser.TestParsedType ( parsedLisp ) );
+            </code>
+            </example>
+        </member>
+        <member name="M:Lisp.LispParser.TestParsed(System.Object)">
+            <summary>
+            [Debug Mode] Recreate Lisp# code.
+            </summary>
+            <param name="node">Parsed Lisp# lists. List&lt;object&gt; is required.</param>
+            <returns>Recreated Lisp# code</returns>
+            <example>
+            Input >> { a , { { b , c } , d } , e }
+            Output >> "(a ((b c) d) e)"
+            </example>
+        </member>
+        <member name="M:Lisp.LispParser.TestParsedType(System.Object)">
+            <summary>
+            [Debug Mode] Shows the type of Lisp# members.
+            </summary>
+            <param name="node">Parsed Lisp# lists. List&lt;object&gt; is required.</param>
+            <returns>Information String</returns>
+            <example>
+            Input >> { a , { { b , "hello" } , 3.14 } , d }
+            Output >> 
+                a : [Symbol]
+                b : [Symbol]
+                "hello" : [String]
+                3.14 : [Number]
+                d : [Symbol]
+            </example>
+        </member>
+        <member name="M:Lisp.LispParser.IsSymbolNameOk(System.String)">
+            <summary>
+            Check the symbol name is acceptable.
+            </summary>
+            <param name="name">Symbol name</param>
+            <returns>True if the name is acceptable, otherwise false.</returns>
+            <remarks>
+            Acceptable Symbol name
+             - At the first letter, only number, character, =, +, *, &lt;, &gt;, /, -, ! is acceptable.
+             - In the Symbol name, only number, character, _, ., ?, =, &lt;, &gt;, - is acceptable.
+            </remarks>
+        </member>
+        <member name="M:Lisp.LispParser.TreeAnalyze(System.Collections.Generic.List{System.Object},Lisp.LispParser.Token[],System.Int32)">
+            <summary>
+            Create List# Tree
+            </summary>
+            <param name="Item">Current list</param>
+            <param name="expression">Tokenized source code.</param>
+            <param name="cur">Current parsing position in tokenized source code.</param>
+            <returns>Completed parsing position in tokenized source code.</returns>
+            <exception cref="T:Lisp.LispParser.SyntaxError"/>
+            <exception cref="T:Lisp.LispParser.SymbolizingError"/>
+            <exception cref="T:Lisp.LispParser.ParenthesisError"/>
+            <exception cref="T:Lisp.LispParser.NumberError"/>
+            <exception cref="T:Lisp.LispParser.UnexpectedTokenError"/>
+        </member>
+        <member name="M:Lisp.LispParser.PreProcess(System.String)">
+            <summary>
+            Tokenize original source code.
+            </summary>
+            <param name="expression">Original source code</param>
+            <returns>Tokenized source code.</returns>
+        </member>
+        <member name="M:Lisp.LispParser.Parse(System.String)">
+            <summary>
+            Parse Lisp# source code
+            </summary>
+            <param name="expression">Lisp# source code</param>
+            <returns>Parsed Lisp# lists</returns>
+            <example>Usage:
+            <code>
+                LispParser parser = new LispParser( );
+                List&lt;object&gt; parsed = parser.Parse( "(a ((b c) d) e)" );
+            </code>
+            </example>
+        </member>
+        <member name="T:Lisp.LispParser.SyntaxError">
+            <summary>
+            SyntaxError Exception
+            </summary>
+        </member>
+        <member name="M:Lisp.LispParser.SyntaxError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+            <summary>
+            SyntaxError Exception Construtor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="code">Original source code.</param>
+            <param name="message">Messages to show.</param>
+        </member>
+        <member name="T:Lisp.LispParser.TokenizingError">
+            <summary>
+            TokenizingError Exception
+            </summary>
+            <remarks><c>TokenizingError</c> Exception would occur in <c>PreProcess</c> method.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.TokenizingError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+            <summary>
+            TokenizingError Exception Constructor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="code">Original source code.</param>
+            <param name="message">Messages to show.</param>
+        </member>
+        <member name="T:Lisp.LispParser.SymbolizingError">
+            <summary>
+            SymbolizingError Exception
+            </summary>
+            <remarks><c>SymbolizingError</c> Exception would occur in <c>TreeAnalyze</c> method.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.SymbolizingError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+            <summary>
+            SymbolizingError Exception Constructor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="code">Original source code.</param>
+            <param name="message">Messages to show.</param>
+        </member>
+        <member name="T:Lisp.LispParser.ParenthesisError">
+            <summary>
+            ParenthesisError Exception
+            </summary>
+            <remarks><c>ParenthesisError</c> Exception would occur when the pair of Open-Close parenthesis is not correctly associated.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.ParenthesisError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+            <summary>
+            ParenthesisError Exception Constructor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="code">Original source code.</param>
+            <param name="message">Messages to show.</param>
+        </member>
+        <member name="T:Lisp.LispParser.NumberError">
+            <summary>
+            NumberError Exception
+            </summary>
+            <remarks><c>NumberError</c> Exception would occur when the number is not correctly parsed.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.NumberError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+            <summary>
+            NumberError Exception Constructor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="code">Original source code.</param>
+            <param name="message">Messages to show.</param>
+        </member>
+        <member name="T:Lisp.LispParser.UnexpectedTokenError">
+            <summary>
+            UnexpectedTokenError Exception
+            </summary>
+            <remarks><c>UnexpectedTokenError</c> Exception would occur when wrong symbol name is detected or unacceptable token is found.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.UnexpectedTokenError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+            <summary>
+            UnexpectedTokenError Exception Constructor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="code">Original source code.</param>
+            <param name="message">Messages to show.</param>
+        </member>
+        <member name="T:Lisp.LispParser.Token">
+            <summary>
+            Token
+            </summary>
+            <remarks><c>Token</c> is used in <c>PreProcess</c> method.
+            <c>Token</c> is created from a raw string source code </remarks>
+        </member>
+        <member name="M:Lisp.LispParser.Token.#ctor(System.String,System.Int32,Lisp.TokenType)">
+            <summary>
+            Token Constructor
+            </summary>
+            <param name="value">Value of Token</param>
+            <param name="offset">Position of Token in the source code</param>
+            <param name="type">Type of Token</param>
+            <remarks>Default value of <c>Token</c> is a Unknown-typed NULL token.
+            Its position in the source code is -1.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.Token.ToString">
+            <summary>
+            (Override) ToString
+            </summary>
+            <returns>Returns value of Token</returns>
+        </member>
+        <member name="P:Lisp.LispParser.Token.Type">
+            <summary>
+            Type of Token
+            </summary>
+        </member>
+        <member name="P:Lisp.LispParser.Token.Value">
+            <summary>
+            Value of Token
+            </summary>
+        </member>
+        <member name="P:Lisp.LispParser.Token.Offset">
+            <summary>
+            Position of Token in the source code
+            </summary>
+        </member>
+        <member name="T:Lisp.ParserTest">
+            <summary>
+            Test Lisp# Parser Module
+            </summary>
+        </member>
+        <member name="M:Lisp.ParserTest.TestParser(System.String,System.String,System.Boolean)">
+            <summary>
+            Test Lisp# Parser
+            </summary>
+            <param name="codeString">Lisp Code</param>
+            <param name="resultString">The result should-be</param>
+            <param name="ConsoleWrite">Dump result</param>
+            <returns>True if pass the test, otherwise false.</returns>
+            <remarks><c>TestParser</c> method would test a Lisp# parser.
+            
+            With passed Lisp code, <c>TestParser</c> checks the result is equals to expected results.
+            When the exception occurs, <c>TestParser</c> will check the exception message, instead.
+            </remarks>
+            <example>
+            - Input Code
+            (a (b (c) (d e)) f)
+            - Output Result
+            ((a (b (c) (d e)) f))\n\na : [Symbol]\nb : [Symbol]\nc : [Symbol]\nd : [Symbol]\ne : [Symbol]\nf : [Symbol]
+            </example>
+        </member>
+        <member name="M:Lisp.ParserTest.StartTest">
+            <summary>
+            Start the parser test.
+            </summary>
+        </member>
+        <member name="T:Lisp.Test">
+            <summary>
+            Lisp# Test Module
+            </summary>
+        </member>
+        <member name="M:Lisp.Test.StartTest(System.Boolean)">
+            <summary>
+            Start Lisp# Module Test
+            </summary>
+            <param name="ParserTest">Test Lisp# Parser</param>
+        </member>
+    </members>
+</doc>
