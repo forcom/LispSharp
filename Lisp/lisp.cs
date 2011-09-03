@@ -40,11 +40,19 @@ namespace Lisp {
         public static string TestParsed ( object node ) {
             if ( node is List<object> ) {
                 return "(" + ( from n in ( node as List<object> ) select TestParsed ( n ) ).Aggregate ( ( x , y ) => x + " " + y ) + ")";
+            } else if ( node is Node && ( node as Node ).TokenType == TokenType.String ) {
+                return "\"" + node.ToString ( ).Replace ( "\"" , "\\\"" ) + "\"";
             }
-            else if ( node is Node && (node as Node).TokenType == TokenType.String  ) {
-                return "\"" + node.ToString().Replace("\"","\\\"") + "\"";
+            return node.ToString ( );
+        }
+
+        public static string TestParsedType ( object node ) {
+            if ( node is List<object> ) {
+                return ( from n in ( node as List<object> ) select TestParsedType ( n ) ).Aggregate ( ( x , y ) => x + "\n" + y );
+            } else if ( node is Node && ( node as Node ).TokenType == TokenType.String ) {
+                return "\"" + node.ToString ( ).Replace ( "\"" , "\\\"" ) + "\" : [String]";
             }
-            return node.ToString();
+            return node.ToString ( ) + " : [" + ( node as Node ).TokenType + "]";
         }
 
         public class SyntaxError : Exception {
@@ -114,7 +122,7 @@ namespace Lisp {
         private string sourceCode;
 
         bool IsSymbolNameOk ( string name ) {
-            Regex reg = new Regex ( @"^[\w=\+\*\<\>/\-!]([\w_\.\?=\<\>])*$" );
+            Regex reg = new Regex ( @"^[\w=\+\*\<\>/\-!]([\w_\.\?=\<\>\-])*$" );
             return reg.IsMatch ( name );
         }
 
@@ -182,7 +190,8 @@ namespace Lisp {
             equ = PreProcess ( expression );
 
             res = TreeAnalyze ( root , equ , 0 );
-            if ( res + 1 != equ.Length ) throw new SymbolizingError ( equ [ res - 1 ] , sourceCode , "Source code did not reach to the end." );
+            if ( res + 1 < equ.Length ) throw new SymbolizingError ( equ [ res - 1 ] , sourceCode , "Source code cannot reach to the end. Open parenthesises may be missed." );
+            else if ( res + 1 > equ.Length ) throw new SymbolizingError ( equ [ res - 1 ] , sourceCode , "Source code does not reach to the end. Close parenthesises may be missed." );
 
             return root;
         }
