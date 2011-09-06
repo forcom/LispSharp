@@ -28,7 +28,9 @@ namespace Lisp {
             }
 
             public void Start ( ) {
-                CallTest ( );
+                //CallTest ( );
+                List<object> parsed = LispParser.Parse("(+ 1 2)");
+                LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }
             }

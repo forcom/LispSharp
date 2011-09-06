@@ -45,7 +45,11 @@ namespace Lisp
         /// <summary>
         /// Symbol
         /// </summary>
-        Symbol
+        Symbol,
+        /// <summary>
+        /// List
+        /// </summary>
+        List
     }
 
     /// <summary>
@@ -92,6 +96,22 @@ namespace Lisp
         public override string ToString()
         {
             return Value.ToString();
+        }
+
+        /// <summary>
+        /// (Override) Equals Method
+        /// </summary>
+        /// <param name="obj">The object to compare</param>
+        /// <returns>True if obj equals to this, otherwise false</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is Node)
+            {
+                Node nod = obj as Node;
+
+                return this.NodeType == nod.NodeType && this.Value == nod.Value;
+            }
+            return false;
         }
     }
 
@@ -368,7 +388,7 @@ namespace Lisp
         ///  - At the first letter, only number, character, =, +, *, &lt;, &gt;, /, -, ! is acceptable.
         ///  - In the Symbol name, only number, character, _, ., ?, =, &lt;, &gt;, - is acceptable.
         /// </remarks>
-        bool IsSymbolNameOk(string name)
+        static bool IsSymbolNameOk(string name)
         {
             Regex reg = new Regex(@"^[\w=\+\*\<\>/\-!%]([\w_\.\?=\<\>\-])*$");
             return reg.IsMatch(name);
@@ -387,7 +407,7 @@ namespace Lisp
         /// <exception cref="ParenthesisError" />
         /// <exception cref="NumberError" />
         /// <exception cref="UnexpectedTokenError" />
-        int TreeAnalyze(List<object> Item, Token[] expression, int cur, string sourceCode)
+        static int TreeAnalyze(List<object> Item, Token[] expression, int cur, string sourceCode)
         {
             int i;
             if (expression[cur].Type != TokenType.OpenParenthesis)
@@ -427,7 +447,7 @@ namespace Lisp
         /// </summary>
         /// <param name="expression">Original source code</param>
         /// <returns>Tokenized source code.</returns>
-        Token[] PreProcess(string expression)
+        static Token[] PreProcess(string expression)
         {
             System.Text.RegularExpressions.Regex reg = new System.Text.RegularExpressions.Regex(@"(?<OpenParenthesis>[\(\{\[])|(?<CloseParenthesis>[\)\]\}])|(?<Number>[0-9]+([\.]?[0-9]*)?)|(?<String>""[^\""]*""|'[^\']*')|(?<Symbol>[^\(\{\[\)\}\]\s\\]+)", System.Text.RegularExpressions.RegexOptions.ExplicitCapture);
             MatchCollection matches = reg.Matches(expression);
@@ -469,7 +489,7 @@ namespace Lisp
         ///     List&lt;object&gt; parsed = parser.Parse( "(a ((b c) d) e)" );
         /// </code>
         /// </example>
-        public List<object> Parse(string expression)
+        public static List<object> Parse(string expression)
         {
             List<object> root = new List<object>();
             Token[] equ = null;

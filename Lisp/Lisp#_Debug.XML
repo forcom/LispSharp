@@ -40,6 +40,11 @@
             Symbol
             </summary>
         </member>
+        <member name="F:Lisp.TokenType.List">
+            <summary>
+            List
+            </summary>
+        </member>
         <member name="T:Lisp.Node">
             <summary>
             Node.
@@ -63,6 +68,13 @@
             </summary>
             <returns>Returns value of <c>Node</c></returns>
         </member>
+        <member name="M:Lisp.Node.Equals(System.Object)">
+            <summary>
+            (Override) Equals Method
+            </summary>
+            <param name="obj">The object to compare</param>
+            <returns>True if obj equals to this, otherwise false</returns>
+        </member>
         <member name="P:Lisp.Node.Value">
             <summary>
             Node's Value
@@ -78,6 +90,35 @@
         <member name="P:Lisp.Node.OriginalCode">
             <summary>
             Original souce code line.
+            </summary>
+        </member>
+        <member name="T:Lisp.DebugInfo">
+            <summary>
+            Debugging Information
+            </summary>
+            <remarks>When the exception has occured, this information such as line number, column, souce code line will be shown.</remarks>
+        </member>
+        <member name="M:Lisp.DebugInfo.#ctor(System.Int32,System.Int32,System.String)">
+            <summary>
+            DebugInfo constructor
+            </summary>
+            <param name="line">Line number</param>
+            <param name="offset">Column number</param>
+            <param name="thisLine">Original source code line</param>
+        </member>
+        <member name="P:Lisp.DebugInfo.Line">
+            <summary>
+            Line number
+            </summary>
+        </member>
+        <member name="P:Lisp.DebugInfo.Offset">
+            <summary>
+            Column number
+            </summary>
+        </member>
+        <member name="P:Lisp.DebugInfo.ThisCodeLine">
+            <summary>
+            Original source code line
             </summary>
         </member>
         <member name="T:Lisp.LispParser">
@@ -224,7 +265,6 @@
             ParenthesisError Exception Constructor
             </summary>
             <param name="token">The token that occurs the error.</param>
-            <param name="code">Original source code.</param>
         </member>
         <member name="T:Lisp.LispParser.NumberError">
             <summary>
@@ -272,6 +312,13 @@
             (Override) ToString
             </summary>
             <returns>Returns value of Token</returns>
+        </member>
+        <member name="M:Lisp.LispParser.Token.SetThisCodeLine(System.Int32,System.String)">
+            <summary>
+            Set the debug information
+            </summary>
+            <param name="offset">Index of token in the entire source code</param>
+            <param name="expression">Original source code</param>
         </member>
         <member name="P:Lisp.LispParser.Token.Type">
             <summary>
@@ -328,6 +375,13 @@
             Start Lisp# Module Test
             </summary>
             <param name="ParserTest">Test Lisp# Parser</param>
+        </member>
+        <member name="M:Lisp.LispEvaluator.RuntimeError.#ctor(Lisp.Node,System.String)">
+            <summary>
+            RuntimeError Exception Construtor
+            </summary>
+            <param name="token">The token that occurs the error.</param>
+            <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.Program.Lisp">
             <summary>

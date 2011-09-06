@@ -20,7 +20,6 @@ namespace Lisp {
     /// Test Lisp# Parser Module
     /// </summary>
     public class ParserTest {
-        LispParser parser = new LispParser ( );
 
         /// <summary>
         /// Test Lisp# Parser
@@ -43,7 +42,7 @@ namespace Lisp {
         public bool TestParser ( string codeString = "(a (b (c) (d e)) f)" , string resultString = "((a (b (c) (d e)) f))\n\na : [Symbol]\nb : [Symbol]\nc : [Symbol]\nd : [Symbol]\ne : [Symbol]\nf : [Symbol]" , bool ConsoleWrite = false ) {
             List<object> code;
             try {
-                code = parser.Parse ( codeString );
+                code = LispParser.Parse ( codeString );
             } catch ( Exception e ) {
                 return resultString != e.Message;
             }
