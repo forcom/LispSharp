@@ -4,11 +4,6 @@
         <name>Lisp</name>
     </assembly>
     <members>
-        <member name="T:Lisp.Program.Lisp">
-            <summary>
-            <c>Lisp</c> class is a entry class.
-            </summary>
-        </member>
         <member name="T:Lisp.TokenType">
             <summary>
             TokenTypes
@@ -52,12 +47,12 @@
             <remarks>After the tokenizing is over, <c>LispParser</c> would make a lisp tree.
             To make lisp tree, <c>Node</c> will be used</remarks>
         </member>
-        <member name="M:Lisp.Node.#ctor(Lisp.TokenType,System.Int32,System.Object)">
+        <member name="M:Lisp.Node.#ctor(Lisp.TokenType,System.Object,Lisp.DebugInfo)">
             <summary>
             Node Constructor
             </summary>
             <param name="type">Type of <c>Node</c></param>
-            <param name="offset">Position from the source</param>
+            <param name="debugInfo">Debugging Information</param>
             <param name="value">Value of <c>Node</c></param>
             <remarks>Default value of <c>Node</c> is a Unknown typed NULL Node.
             Default source code position is -1.</remarks>
@@ -75,15 +70,14 @@
             <remarks>It can be Number, String, or Symbol.
             It is defined by <c>TokenType</c>.</remarks>
         </member>
-        <member name="P:Lisp.Node.Offset">
-            <summary>
-            Position from the source.
-            </summary>
-            <remarks>Count from the head of the code.</remarks>
-        </member>
         <member name="P:Lisp.Node.NodeType">
             <summary>
             Type of <c>Node</c>
+            </summary>
+        </member>
+        <member name="P:Lisp.Node.OriginalCode">
+            <summary>
+            Original souce code line.
             </summary>
         </member>
         <member name="T:Lisp.LispParser">
@@ -146,13 +140,14 @@
              - In the Symbol name, only number, character, _, ., ?, =, &lt;, &gt;, - is acceptable.
             </remarks>
         </member>
-        <member name="M:Lisp.LispParser.TreeAnalyze(System.Collections.Generic.List{System.Object},Lisp.LispParser.Token[],System.Int32)">
+        <member name="M:Lisp.LispParser.TreeAnalyze(System.Collections.Generic.List{System.Object},Lisp.LispParser.Token[],System.Int32,System.String)">
             <summary>
             Create List# Tree
             </summary>
             <param name="Item">Current list</param>
             <param name="expression">Tokenized source code.</param>
             <param name="cur">Current parsing position in tokenized source code.</param>
+            <param name="sourceCode">Original source code.</param>
             <returns>Completed parsing position in tokenized source code.</returns>
             <exception cref="T:Lisp.LispParser.SyntaxError"/>
             <exception cref="T:Lisp.LispParser.SymbolizingError"/>
@@ -185,12 +180,11 @@
             SyntaxError Exception
             </summary>
         </member>
-        <member name="M:Lisp.LispParser.SyntaxError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+        <member name="M:Lisp.LispParser.SyntaxError.#ctor(Lisp.LispParser.Token,System.String)">
             <summary>
             SyntaxError Exception Construtor
             </summary>
             <param name="token">The token that occurs the error.</param>
-            <param name="code">Original source code.</param>
             <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.LispParser.TokenizingError">
@@ -199,12 +193,11 @@
             </summary>
             <remarks><c>TokenizingError</c> Exception would occur in <c>PreProcess</c> method.</remarks>
         </member>
-        <member name="M:Lisp.LispParser.TokenizingError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+        <member name="M:Lisp.LispParser.TokenizingError.#ctor(Lisp.LispParser.Token,System.String)">
             <summary>
             TokenizingError Exception Constructor
             </summary>
             <param name="token">The token that occurs the error.</param>
-            <param name="code">Original source code.</param>
             <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.LispParser.SymbolizingError">
@@ -213,12 +206,11 @@
             </summary>
             <remarks><c>SymbolizingError</c> Exception would occur in <c>TreeAnalyze</c> method.</remarks>
         </member>
-        <member name="M:Lisp.LispParser.SymbolizingError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+        <member name="M:Lisp.LispParser.SymbolizingError.#ctor(Lisp.LispParser.Token,System.String)">
             <summary>
             SymbolizingError Exception Constructor
             </summary>
             <param name="token">The token that occurs the error.</param>
-            <param name="code">Original source code.</param>
             <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.LispParser.ParenthesisError">
@@ -227,13 +219,12 @@
             </summary>
             <remarks><c>ParenthesisError</c> Exception would occur when the pair of Open-Close parenthesis is not correctly associated.</remarks>
         </member>
-        <member name="M:Lisp.LispParser.ParenthesisError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+        <member name="M:Lisp.LispParser.ParenthesisError.#ctor(Lisp.LispParser.Token)">
             <summary>
             ParenthesisError Exception Constructor
             </summary>
             <param name="token">The token that occurs the error.</param>
             <param name="code">Original source code.</param>
-            <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.LispParser.NumberError">
             <summary>
@@ -241,13 +232,11 @@
             </summary>
             <remarks><c>NumberError</c> Exception would occur when the number is not correctly parsed.</remarks>
         </member>
-        <member name="M:Lisp.LispParser.NumberError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+        <member name="M:Lisp.LispParser.NumberError.#ctor(Lisp.LispParser.Token)">
             <summary>
             NumberError Exception Constructor
             </summary>
             <param name="token">The token that occurs the error.</param>
-            <param name="code">Original source code.</param>
-            <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.LispParser.UnexpectedTokenError">
             <summary>
@@ -255,13 +244,11 @@
             </summary>
             <remarks><c>UnexpectedTokenError</c> Exception would occur when wrong symbol name is detected or unacceptable token is found.</remarks>
         </member>
-        <member name="M:Lisp.LispParser.UnexpectedTokenError.#ctor(Lisp.LispParser.Token,System.String,System.String)">
+        <member name="M:Lisp.LispParser.UnexpectedTokenError.#ctor(Lisp.LispParser.Token)">
             <summary>
             UnexpectedTokenError Exception Constructor
             </summary>
             <param name="token">The token that occurs the error.</param>
-            <param name="code">Original source code.</param>
-            <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.LispParser.Token">
             <summary>
@@ -270,13 +257,13 @@
             <remarks><c>Token</c> is used in <c>PreProcess</c> method.
             <c>Token</c> is created from a raw string source code </remarks>
         </member>
-        <member name="M:Lisp.LispParser.Token.#ctor(System.String,System.Int32,Lisp.TokenType)">
+        <member name="M:Lisp.LispParser.Token.#ctor(System.String,Lisp.TokenType,Lisp.DebugInfo)">
             <summary>
             Token Constructor
             </summary>
             <param name="value">Value of Token</param>
-            <param name="offset">Position of Token in the source code</param>
             <param name="type">Type of Token</param>
+            <param name="debugInfo">Original source code information</param>
             <remarks>Default value of <c>Token</c> is a Unknown-typed NULL token.
             Its position in the source code is -1.</remarks>
         </member>
@@ -296,9 +283,9 @@
             Value of Token
             </summary>
         </member>
-        <member name="P:Lisp.LispParser.Token.Offset">
+        <member name="P:Lisp.LispParser.Token.OriginalCode">
             <summary>
-            Position of Token in the source code
+            Original source code line.
             </summary>
         </member>
         <member name="T:Lisp.ParserTest">
@@ -341,6 +328,11 @@
             Start Lisp# Module Test
             </summary>
             <param name="ParserTest">Test Lisp# Parser</param>
+        </member>
+        <member name="T:Lisp.Program.Lisp">
+            <summary>
+            <c>Lisp</c> class is a entry class.
+            </summary>
         </member>
     </members>
 </doc>

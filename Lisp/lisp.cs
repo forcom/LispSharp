@@ -5,7 +5,7 @@
  * Created by SeungYong, Yoon
  * 
  * Created in 2011.09.04
- * Last Modified in 2011.09.04
+ * Last Modified in 2011.09.06
  */
 
 using System;
@@ -14,32 +14,34 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Lisp {
+namespace Lisp
+{
     /// <summary>
     /// TokenTypes
     /// </summary>
     /// <remarks>When the lisp code is tokened, to identify the token's information.</remarks>
-    public enum TokenType {
+    public enum TokenType
+    {
         /// <summary>
         /// Unknown Token Type
         /// </summary>
-        Unknown ,
+        Unknown,
         /// <summary>
         /// OpenParenthesis. ({[
         /// </summary>
-        OpenParenthesis ,
+        OpenParenthesis,
         /// <summary>
         /// CloseParenthesis. )}]
         /// </summary>
-        CloseParenthesis ,
+        CloseParenthesis,
         /// <summary>
         /// Number. 0-9
         /// </summary>
-        Number ,
+        Number,
         /// <summary>
         /// String
         /// </summary>
-        String ,
+        String,
         /// <summary>
         /// Symbol
         /// </summary>
@@ -51,7 +53,8 @@ namespace Lisp {
     /// </summary>
     /// <remarks>After the tokenizing is over, <c>LispParser</c> would make a lisp tree.
     /// To make lisp tree, <c>Node</c> will be used</remarks>
-    public class Node {
+    public class Node
+    {
         /// <summary>
         /// Node's Value
         /// </summary>
@@ -59,35 +62,69 @@ namespace Lisp {
         /// It is defined by <c>TokenType</c>.</remarks>
         public object Value { get; set; }
         /// <summary>
-        /// Position from the source.
-        /// </summary>
-        /// <remarks>Count from the head of the code.</remarks>
-        public int Offset { get; set; }
-        /// <summary>
         /// Type of <c>Node</c>
         /// </summary>
         public TokenType NodeType { get; set; }
+        /// <summary>
+        /// Original souce code line.
+        /// </summary>
+        public DebugInfo OriginalCode { get; private set; }
 
         /// <summary>
         /// Node Constructor
         /// </summary>
         /// <param name="type">Type of <c>Node</c></param>
-        /// <param name="offset">Position from the source</param>
+        /// <param name="debugInfo">Debugging Information</param>
         /// <param name="value">Value of <c>Node</c></param>
         /// <remarks>Default value of <c>Node</c> is a Unknown typed NULL Node.
         /// Default source code position is -1.</remarks>
-        public Node ( TokenType type = global::Lisp.TokenType.Unknown , int offset = -1 , object value = null ) {
+        public Node(TokenType type = global::Lisp.TokenType.Unknown, object value = null, DebugInfo debugInfo = null)
+        {
             NodeType = type;
-            Offset = offset;
             Value = value;
+            OriginalCode = debugInfo;
         }
 
         /// <summary>
         /// (Override) ToString Method
         /// </summary>
         /// <returns>Returns value of <c>Node</c></returns>
-        public override string ToString ( ) {
-            return Value.ToString ( );
+        public override string ToString()
+        {
+            return Value.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Debugging Information
+    /// </summary>
+    /// <remarks>When the exception has occured, this information such as line number, column, souce code line will be shown.</remarks>
+    public class DebugInfo
+    {
+        /// <summary>
+        /// Line number
+        /// </summary>
+        public int Line { get; set; }
+        /// <summary>
+        /// Column number
+        /// </summary>
+        public int Offset { get; set; }
+        /// <summary>
+        /// Original source code line
+        /// </summary>
+        public string ThisCodeLine { get; set; }
+
+        /// <summary>
+        /// DebugInfo constructor
+        /// </summary>
+        /// <param name="line">Line number</param>
+        /// <param name="offset">Column number</param>
+        /// <param name="thisLine">Original source code line</param>
+        public DebugInfo(int line = -1, int offset = -1, string thisLine = "")
+        {
+            Line = line;
+            Offset = offset;
+            ThisCodeLine = thisLine;
         }
     }
 
@@ -110,7 +147,8 @@ namespace Lisp {
     ///     Console.WriteLine( LispParser.TestParsedType ( parsedLisp ) );
     /// </code>
     /// </example>
-    public class LispParser {
+    public class LispParser
+    {
 
 #if DEBUG
         /// <summary>
@@ -122,13 +160,17 @@ namespace Lisp {
         /// Input >> { a , { { b , c } , d } , e }
         /// Output >> "(a ((b c) d) e)"
         /// </example>
-        public static string TestParsed ( object node ) {
-            if ( node is List<object> ) {
-                return "(" + ( from n in ( node as List<object> ) select TestParsed ( n ) ).Aggregate ( ( x , y ) => x + " " + y ) + ")";
-            } else if ( node is Node && ( node as Node ).NodeType == TokenType.String ) {
-                return "\"" + node.ToString ( ).Replace ( "\"" , "\\\"" ) + "\"";
+        public static string TestParsed(object node)
+        {
+            if (node is List<object>)
+            {
+                return "(" + (from n in (node as List<object>) select TestParsed(n)).Aggregate((x, y) => x + " " + y) + ")";
             }
-            return node.ToString ( );
+            else if (node is Node && (node as Node).NodeType == TokenType.String)
+            {
+                return "\"" + node.ToString().Replace("\"", "\\\"") + "\"";
+            }
+            return node.ToString();
         }
 
         /// <summary>
@@ -145,120 +187,108 @@ namespace Lisp {
         ///     3.14 : [Number]
         ///     d : [Symbol]
         /// </example>
-        public static string TestParsedType ( object node ) {
-            if ( node is List<object> ) {
-                return ( from n in ( node as List<object> ) select TestParsedType ( n ) ).Aggregate ( ( x , y ) => x + "\n" + y );
-            } else if ( node is Node && ( node as Node ).NodeType == TokenType.String ) {
-                return "\"" + node.ToString ( ).Replace ( "\"" , "\\\"" ) + "\" : [String]";
+        public static string TestParsedType(object node)
+        {
+            if (node is List<object>)
+            {
+                return (from n in (node as List<object>) select TestParsedType(n)).Aggregate((x, y) => x + "\n" + y);
             }
-            return node.ToString ( ) + " : [" + ( node as Node ).NodeType + "]";
+            else if (node is Node && (node as Node).NodeType == TokenType.String)
+            {
+                return "\"" + node.ToString().Replace("\"", "\\\"") + "\" : [String]";
+            }
+            return node.ToString() + " : [" + (node as Node).NodeType + "]";
         }
 #endif
 
         /// <summary>
         /// SyntaxError Exception
         /// </summary>
-        public class SyntaxError : Exception {
-            static string GetErrorMessage ( Token token , string code , string message ) {
-                int lines = code.Substring ( 0 , token.Offset ).Count ( x => x == '\n' ) + 1;
+        public class SyntaxError : Exception
+        {
+            static string GetErrorMessage(Token token, string message)
+            {
+                StringBuilder blankcursor = new StringBuilder(token.OriginalCode.Offset + 1);
+                for (int i = 0; i < token.OriginalCode.Offset; ++i) blankcursor.Append(' ');
+                blankcursor.Append('^');
 
-                int curLinePos = code.LastIndexOf ( '\n' , token.Offset );
-                curLinePos = ( curLinePos == -1 ) ? 0 : curLinePos + 1;
-
-                int nextLinePos = code.IndexOf ( '\n' , token.Offset );
-                nextLinePos = ( nextLinePos == -1 ) ? code.Length - 1 : nextLinePos - 1;
-
-                int position = token.Offset - curLinePos;
-
-                string curLine = code.Substring ( curLinePos , nextLinePos - curLinePos + 1 ).Replace ( '\t' , ' ' );
-
-                StringBuilder blankcursor = new StringBuilder ( position + 1 );
-                for ( int i = 0 ; i < position ; ++i ) blankcursor.Append ( ' ' );
-                blankcursor.Append ( '^' );
-
-                string result = string.Join ( "\n" , message , "Code at [" + lines + ":" + position + "]" , curLine , blankcursor.ToString ( ) );
-
-                return result;
+                return string.Join("\n", message, "Code at [" + token.OriginalCode.Line + ":" + token.OriginalCode.Offset + "]", token.OriginalCode.ThisCodeLine, blankcursor.ToString());
             }
 
             /// <summary>
             /// SyntaxError Exception Construtor
             /// </summary>
             /// <param name="token">The token that occurs the error.</param>
-            /// <param name="code">Original source code.</param>
             /// <param name="message">Messages to show.</param>
-            public SyntaxError ( Token token , string code = "" , string message = "Syntax error has occured." ) : base ( GetErrorMessage ( token , code , message ) ) { }
+            public SyntaxError(Token token, string message = "Syntax error has occured.") : base(GetErrorMessage(token, message)) { }
         }
         /// <summary>
         /// TokenizingError Exception
         /// </summary>
         /// <remarks><c>TokenizingError</c> Exception would occur in <c>PreProcess</c> method.</remarks>
-        public class TokenizingError : SyntaxError {
+        public class TokenizingError : SyntaxError
+        {
             /// <summary>
             /// TokenizingError Exception Constructor
             /// </summary>
             /// <param name="token">The token that occurs the error.</param>
-            /// <param name="code">Original source code.</param>
             /// <param name="message">Messages to show.</param>
-            public TokenizingError ( Token token , string code = "" , string message = "Tokenizing error has occured." )
-                : base ( token , code , message ) { }
+            public TokenizingError(Token token, string message = "Tokenizing error has occured.")
+                : base(token, message) { }
         }
         /// <summary>
         /// SymbolizingError Exception
         /// </summary>
         /// <remarks><c>SymbolizingError</c> Exception would occur in <c>TreeAnalyze</c> method.</remarks>
-        public class SymbolizingError : SyntaxError {
+        public class SymbolizingError : SyntaxError
+        {
             /// <summary>
             /// SymbolizingError Exception Constructor
             /// </summary>
             /// <param name="token">The token that occurs the error.</param>
-            /// <param name="code">Original source code.</param>
             /// <param name="message">Messages to show.</param>
-            public SymbolizingError ( Token token , string code = "" , string message = "Symbolizing error has occured." )
-                : base ( token , code , message ) { }
+            public SymbolizingError(Token token, string message = "Symbolizing error has occured.")
+                : base(token, message) { }
         }
 
         /// <summary>
         /// ParenthesisError Exception
         /// </summary>
         /// <remarks><c>ParenthesisError</c> Exception would occur when the pair of Open-Close parenthesis is not correctly associated.</remarks>
-        public class ParenthesisError : SymbolizingError {
+        public class ParenthesisError : SymbolizingError
+        {
             /// <summary>
             /// ParenthesisError Exception Constructor
             /// </summary>
             /// <param name="token">The token that occurs the error.</param>
-            /// <param name="code">Original source code.</param>
-            /// <param name="message">Messages to show.</param>
-            public ParenthesisError ( Token token , string code = "" , string message = "Unexpected parenthesis has been detected." )
-                : base ( token , code , message ) { }
+            public ParenthesisError(Token token)
+                : base(token, "Unexpected parenthesis has been detected.") { }
         }
         /// <summary>
         /// NumberError Exception
         /// </summary>
         /// <remarks><c>NumberError</c> Exception would occur when the number is not correctly parsed.</remarks>
-        public class NumberError : SymbolizingError {
+        public class NumberError : SymbolizingError
+        {
             /// <summary>
             /// NumberError Exception Constructor
             /// </summary>
             /// <param name="token">The token that occurs the error.</param>
-            /// <param name="code">Original source code.</param>
-            /// <param name="message">Messages to show.</param>
-            public NumberError ( Token token , string code = "" , string message = "Number parsing error has occured." )
-                : base ( token , code , message ) { }
+            public NumberError(Token token)
+                : base(token, "Number parsing error has occured.") { }
         }
         /// <summary>
         /// UnexpectedTokenError Exception
         /// </summary>
         /// <remarks><c>UnexpectedTokenError</c> Exception would occur when wrong symbol name is detected or unacceptable token is found.</remarks>
-        public class UnexpectedTokenError : SymbolizingError {
+        public class UnexpectedTokenError : SymbolizingError
+        {
             /// <summary>
             /// UnexpectedTokenError Exception Constructor
             /// </summary>
             /// <param name="token">The token that occurs the error.</param>
-            /// <param name="code">Original source code.</param>
-            /// <param name="message">Messages to show.</param>
-            public UnexpectedTokenError ( Token token , string code = "" , string message = "Unexpected Token has been detected." )
-                : base ( token , code , message ) { }
+            public UnexpectedTokenError(Token token)
+                : base(token, "Unexpected Token has been detected.") { }
         }
 
         /// <summary>
@@ -266,7 +296,8 @@ namespace Lisp {
         /// </summary>
         /// <remarks><c>Token</c> is used in <c>PreProcess</c> method.
         /// <c>Token</c> is created from a raw string source code </remarks>
-        public class Token {
+        public class Token
+        {
             /// <summary>
             /// Type of Token
             /// </summary>
@@ -276,34 +307,56 @@ namespace Lisp {
             /// </summary>
             public string Value { get; set; }
             /// <summary>
-            /// Position of Token in the source code
+            /// Original source code line.
             /// </summary>
-            public int Offset { get; set; }
+            public DebugInfo OriginalCode { get; set; }
 
             /// <summary>
             /// Token Constructor
             /// </summary>
             /// <param name="value">Value of Token</param>
-            /// <param name="offset">Position of Token in the source code</param>
             /// <param name="type">Type of Token</param>
+            /// <param name="debugInfo">Original source code information</param>
             /// <remarks>Default value of <c>Token</c> is a Unknown-typed NULL token.
             /// Its position in the source code is -1.</remarks>
-            public Token ( string value = "" , int offset = -1 , TokenType type = TokenType.Unknown ) {
+            public Token(string value = "", TokenType type = TokenType.Unknown, DebugInfo debugInfo = null)
+            {
                 Value = value;
-                Offset = offset;
                 Type = type;
+                OriginalCode = debugInfo;
             }
 
             /// <summary>
             /// (Override) ToString
             /// </summary>
             /// <returns>Returns value of Token</returns>
-            public override string ToString ( ) {
+            public override string ToString()
+            {
                 return Value;
             }
-        }
 
-        string sourceCode;
+            /// <summary>
+            /// Set the debug information
+            /// </summary>
+            /// <param name="offset">Index of token in the entire source code</param>
+            /// <param name="expression">Original source code</param>
+            public void SetThisCodeLine(int offset, string expression)
+            {
+                int lines = expression.Substring(0, offset).Count(x => x == '\n') + 1;
+
+                int curLinePos = expression.LastIndexOf('\n', offset);
+                curLinePos = (curLinePos == -1) ? 0 : curLinePos + 1;
+
+                int nextLinePos = expression.IndexOf('\n', offset);
+                nextLinePos = (nextLinePos == -1) ? expression.Length - 1 : nextLinePos - 1;
+
+                int position = offset - curLinePos;
+
+                string curLine = expression.Substring(curLinePos, nextLinePos - curLinePos + 1).Replace('\t', ' ');
+
+                OriginalCode = new DebugInfo(lines, position, curLine);
+            }
+        }
 
         /// <summary>
         /// Check the symbol name is acceptable.
@@ -315,9 +368,10 @@ namespace Lisp {
         ///  - At the first letter, only number, character, =, +, *, &lt;, &gt;, /, -, ! is acceptable.
         ///  - In the Symbol name, only number, character, _, ., ?, =, &lt;, &gt;, - is acceptable.
         /// </remarks>
-        bool IsSymbolNameOk ( string name ) {
-            Regex reg = new Regex ( @"^[\w=\+\*\<\>/\-!]([\w_\.\?=\<\>\-])*$" );
-            return reg.IsMatch ( name );
+        bool IsSymbolNameOk(string name)
+        {
+            Regex reg = new Regex(@"^[\w=\+\*\<\>/\-!%]([\w_\.\?=\<\>\-])*$");
+            return reg.IsMatch(name);
         }
 
         /// <summary>
@@ -326,37 +380,43 @@ namespace Lisp {
         /// <param name="Item">Current list</param>
         /// <param name="expression">Tokenized source code.</param>
         /// <param name="cur">Current parsing position in tokenized source code.</param>
+        /// <param name="sourceCode">Original source code.</param>
         /// <returns>Completed parsing position in tokenized source code.</returns>
         /// <exception cref="SyntaxError" />
         /// <exception cref="SymbolizingError" />
         /// <exception cref="ParenthesisError" />
         /// <exception cref="NumberError" />
         /// <exception cref="UnexpectedTokenError" />
-        int TreeAnalyze ( List<object> Item , Token [ ] expression , int cur ) {
+        int TreeAnalyze(List<object> Item, Token[] expression, int cur, string sourceCode)
+        {
             int i;
-            if ( expression [ cur ].Type != TokenType.OpenParenthesis )
-                throw new ParenthesisError ( expression [ cur ] , sourceCode );
+            if (expression[cur].Type != TokenType.OpenParenthesis)
+                throw new ParenthesisError(expression[cur]);
 
-            for ( i = cur + 1 ; i < expression.Length ; ++i ) {
-                switch ( expression [ i ].Type ) {
+            for (i = cur + 1; i < expression.Length; ++i)
+            {
+                switch (expression[i].Type)
+                {
                     case TokenType.OpenParenthesis:
-                        List<object> child = new List<object> ( );
-                        Item.Add ( child );
-                        i = TreeAnalyze ( child , expression , i );
+                        List<object> child = new List<object>();
+                        Item.Add(child);
+                        i = TreeAnalyze(child, expression, i, sourceCode);
                         break;
                     case TokenType.CloseParenthesis:
                         return i;
                     case TokenType.Number:
+                        Item.Add(new Node(expression[i].Type, decimal.Parse(expression[i].Value), expression[i].OriginalCode));
+                        break;
                     case TokenType.String:
-                        Item.Add ( new Node ( expression [ i ].Type , expression [ i ].Offset , expression [ i ].Value ) );
+                        Item.Add(new Node(expression[i].Type, expression[i].Value, expression[i].OriginalCode));
                         break;
                     case TokenType.Symbol:
-                        if ( !IsSymbolNameOk ( expression [ i ].Value ) )
-                            throw new UnexpectedTokenError ( expression [ i ] , sourceCode );
-                        Item.Add ( new Node ( expression [ i ].Type , expression [ i ].Offset , expression [ i ].Value ) );
+                        if (!IsSymbolNameOk(expression[i].Value))
+                            throw new UnexpectedTokenError(expression[i]);
+                        Item.Add(new Node(expression[i].Type, expression[i].Value, expression[i].OriginalCode));
                         break;
                     case TokenType.Unknown:
-                        throw new UnexpectedTokenError ( expression [ i ] , sourceCode );
+                        throw new UnexpectedTokenError(expression[i]);
                 }
             }
             return expression.Length;
@@ -367,27 +427,34 @@ namespace Lisp {
         /// </summary>
         /// <param name="expression">Original source code</param>
         /// <returns>Tokenized source code.</returns>
-        Token [ ] PreProcess ( string expression ) {
-            System.Text.RegularExpressions.Regex reg = new System.Text.RegularExpressions.Regex ( @"(?<OpenParenthesis>[\(\{\[])|(?<CloseParenthesis>[\)\]\}])|(?<Number>[0-9]+([\.]?[0-9]*)?)|(?<String>""[^\""]*""|'[^\']*')|(?<Symbol>[^\(\{\[\)\}\]\s\\]+)" , System.Text.RegularExpressions.RegexOptions.ExplicitCapture );
-            MatchCollection matches = reg.Matches ( expression );
+        Token[] PreProcess(string expression)
+        {
+            System.Text.RegularExpressions.Regex reg = new System.Text.RegularExpressions.Regex(@"(?<OpenParenthesis>[\(\{\[])|(?<CloseParenthesis>[\)\]\}])|(?<Number>[0-9]+([\.]?[0-9]*)?)|(?<String>""[^\""]*""|'[^\']*')|(?<Symbol>[^\(\{\[\)\}\]\s\\]+)", System.Text.RegularExpressions.RegexOptions.ExplicitCapture);
+            MatchCollection matches = reg.Matches(expression);
 
-            Token [ ] result = new Token [ matches.Count + 2 ];
-            String [ ] groupName = reg.GetGroupNames ( );
+            Token[] result = new Token[matches.Count + 2];
+            String[] groupName = reg.GetGroupNames();
 
-            result [ 0 ] = new Token ( "" , -1 , TokenType.OpenParenthesis );
-            for ( int i = 0 ; i < matches.Count ; ++i ) {
-                result [ i + 1 ] = new Token ( matches [ i ].Value , matches [ i ].Index );
-                result [ i + 1 ].Offset = matches [ i ].Index;
-                for ( int j = 0 ; j < groupName.Length ; ++j ) {
-                    if ( matches [ i ].Groups [ j ].Success ) {
-                        result [ i + 1 ].Type = ( TokenType ) j;
-                        if ( j == ( int ) TokenType.String ) {
-                            result [ i + 1 ].Value = result [ i + 1 ].Value.Substring ( 1 , result [ i + 1 ].Value.Length - 2 );
+            result[0] = new Token("", TokenType.OpenParenthesis);
+            result[0].SetThisCodeLine(0, expression);
+            for (int i = 0; i < matches.Count; ++i)
+            {
+                result[i + 1] = new Token(matches[i].Value);
+                result[i + 1].SetThisCodeLine(matches[i].Index, expression);
+                for (int j = 0; j < groupName.Length; ++j)
+                {
+                    if (matches[i].Groups[j].Success)
+                    {
+                        result[i + 1].Type = (TokenType)j;
+                        if (j == (int)TokenType.String)
+                        {
+                            result[i + 1].Value = result[i + 1].Value.Substring(1, result[i + 1].Value.Length - 2);
                         }
                     }
                 }
             }
-            result [ matches.Count + 1 ] = new Token ( "" , expression.Length - 1 , TokenType.CloseParenthesis );
+            result[matches.Count + 1] = new Token("", TokenType.CloseParenthesis);
+            result[matches.Count + 1].SetThisCodeLine(expression.Length - 1, expression);
             return result;
         }
 
@@ -402,18 +469,17 @@ namespace Lisp {
         ///     List&lt;object&gt; parsed = parser.Parse( "(a ((b c) d) e)" );
         /// </code>
         /// </example>
-        public List<object> Parse ( string expression ) {
-            List<object> root = new List<object> ( );
-            Token [ ] equ = null;
+        public List<object> Parse(string expression)
+        {
+            List<object> root = new List<object>();
+            Token[] equ = null;
             int res;
 
-            sourceCode = expression;
+            equ = PreProcess(expression);
 
-            equ = PreProcess ( expression );
-
-            res = TreeAnalyze ( root , equ , 0 );
-            if ( res + 1 < equ.Length ) throw new SymbolizingError ( equ [ res - 1 ] , sourceCode , "Source code cannot reach to the end. Open parenthesises may be missed." );
-            else if ( res + 1 > equ.Length ) throw new SymbolizingError ( equ [ res - 1 ] , sourceCode , "Source code does not reach to the end. Close parenthesises may be missed." );
+            res = TreeAnalyze(root, equ, 0, expression);
+            if (res + 1 < equ.Length) throw new SymbolizingError(equ[res - 1], "Source code cannot reach to the end. Open parenthesises may be missed.");
+            else if (res + 1 > equ.Length) throw new SymbolizingError(equ[res - 1], "Source code does not reach to the end. Close parenthesises may be missed.");
 
             return root;
         }
