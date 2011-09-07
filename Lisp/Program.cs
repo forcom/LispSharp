@@ -27,9 +27,33 @@ namespace Lisp {
 #endif
             }
 
+            /*
+(define account
+    (lambda (n)
+        (lambda (incr)
+            (setf! n (+ n incr))
+             n)))
+(define a (account 1))
+(a 0) #1
+(a 12) #13
+(a 5) #18
+(define b (account 1))
+(b 0) #1
+(b 1) #2
+(a 1) #19
+             * 
+(define x 123)
+(display x) #123
+(let ((x 456) (y 123))
+    (display x) #456
+    (display y)) #123
+(display x) #123
+(display y) #Name Error
+*/
+
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse(@"(define a (if #t '(1 2 3) '(4 5 6))) (display (cdr a))");
+                List<object> parsed = LispParser.Parse(@"(define args (quote (1 ""hello""))) (display (cdr args))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }
