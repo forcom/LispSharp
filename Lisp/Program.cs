@@ -29,7 +29,7 @@ namespace Lisp {
 
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse("(display (if (< 2 4) 3 4))");
+                List<object> parsed = LispParser.Parse(@"(define a (if #t '(1 2 3) '(4 5 6))) (display (cdr a))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }
