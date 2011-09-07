@@ -53,7 +53,7 @@ namespace Lisp {
 
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse(@"(define args (quote (1 ""hello""))) (display (cdr args))");
+                List<object> parsed = LispParser.Parse(@"(eval (quote (apply display (quote ((apply + (quote (1 2))))))))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }
