@@ -1,0 +1,8 @@
+﻿((a (b (c) (d e)) f))
+
+a : [Lisp.Symbol]
+b : [Lisp.Symbol]
+c : [Lisp.Symbol]
+d : [Lisp.Symbol]
+e : [Lisp.Symbol]
+f : [Lisp.Symbol]

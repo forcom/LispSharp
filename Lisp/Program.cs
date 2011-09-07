@@ -5,7 +5,7 @@
  * Created by SeungYong, Yoon
  * 
  * Created in 2011.09.04
- * Last Modified in 2011.09.04
+ * Last Modified in 2011.09.06
  */
 
 using System;
@@ -29,7 +29,7 @@ namespace Lisp {
 
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse("(+ 1 2)");
+                List<object> parsed = LispParser.Parse("(display (if (< 2 4) 3 4))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }

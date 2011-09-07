@@ -1,0 +1,4 @@
+﻿Source code does not reach to the end. Close parenthesises may be missed.
+Code at [1:17]
+(a (b (c (d e)) f)
+                 ^

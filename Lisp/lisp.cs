@@ -53,98 +53,31 @@ namespace Lisp
     }
 
     /// <summary>
-    /// Node.
+    /// Symbol
     /// </summary>
-    /// <remarks>After the tokenizing is over, <c>LispParser</c> would make a lisp tree.
-    /// To make lisp tree, <c>Node</c> will be used</remarks>
-    public class Node
+    public class Symbol
     {
-        /// <summary>
-        /// Node's Value
-        /// </summary>
-        /// <remarks>It can be Number, String, or Symbol.
-        /// It is defined by <c>TokenType</c>.</remarks>
-        public object Value { get; set; }
-        /// <summary>
-        /// Type of <c>Node</c>
-        /// </summary>
-        public TokenType NodeType { get; set; }
-        /// <summary>
-        /// Original souce code line.
-        /// </summary>
-        public DebugInfo OriginalCode { get; private set; }
+        public string Name { get; set; }
 
-        /// <summary>
-        /// Node Constructor
-        /// </summary>
-        /// <param name="type">Type of <c>Node</c></param>
-        /// <param name="debugInfo">Debugging Information</param>
-        /// <param name="value">Value of <c>Node</c></param>
-        /// <remarks>Default value of <c>Node</c> is a Unknown typed NULL Node.
-        /// Default source code position is -1.</remarks>
-        public Node(TokenType type = global::Lisp.TokenType.Unknown, object value = null, DebugInfo debugInfo = null)
+        public Symbol(string name)
         {
-            NodeType = type;
-            Value = value;
-            OriginalCode = debugInfo;
+            Name = name;
         }
 
-        /// <summary>
-        /// (Override) ToString Method
-        /// </summary>
-        /// <returns>Returns value of <c>Node</c></returns>
         public override string ToString()
         {
-            return Value.ToString();
+            return Name;
         }
 
-        /// <summary>
-        /// (Override) Equals Method
-        /// </summary>
-        /// <param name="obj">The object to compare</param>
-        /// <returns>True if obj equals to this, otherwise false</returns>
         public override bool Equals(object obj)
         {
-            if (obj is Node)
-            {
-                Node nod = obj as Node;
-
-                return this.NodeType == nod.NodeType && this.Value == nod.Value;
-            }
+            if (obj is Symbol) return this.Name == (obj as Symbol).Name;
             return false;
         }
-    }
 
-    /// <summary>
-    /// Debugging Information
-    /// </summary>
-    /// <remarks>When the exception has occured, this information such as line number, column, souce code line will be shown.</remarks>
-    public class DebugInfo
-    {
-        /// <summary>
-        /// Line number
-        /// </summary>
-        public int Line { get; set; }
-        /// <summary>
-        /// Column number
-        /// </summary>
-        public int Offset { get; set; }
-        /// <summary>
-        /// Original source code line
-        /// </summary>
-        public string ThisCodeLine { get; set; }
-
-        /// <summary>
-        /// DebugInfo constructor
-        /// </summary>
-        /// <param name="line">Line number</param>
-        /// <param name="offset">Column number</param>
-        /// <param name="thisLine">Original source code line</param>
-        public DebugInfo(int line = -1, int offset = -1, string thisLine = "")
+        public override int GetHashCode()
         {
-            Line = line;
-            Offset = offset;
-            ThisCodeLine = thisLine;
+            return Name.GetHashCode();
         }
     }
 
@@ -186,7 +119,7 @@ namespace Lisp
             {
                 return "(" + (from n in (node as List<object>) select TestParsed(n)).Aggregate((x, y) => x + " " + y) + ")";
             }
-            else if (node is Node && (node as Node).NodeType == TokenType.String)
+            else if (node is string)
             {
                 return "\"" + node.ToString().Replace("\"", "\\\"") + "\"";
             }
@@ -213,11 +146,11 @@ namespace Lisp
             {
                 return (from n in (node as List<object>) select TestParsedType(n)).Aggregate((x, y) => x + "\n" + y);
             }
-            else if (node is Node && (node as Node).NodeType == TokenType.String)
+            else if (node is string)
             {
-                return "\"" + node.ToString().Replace("\"", "\\\"") + "\" : [String]";
+                return "\"" + node.ToString().Replace("\"", "\\\"") + "\" : [" + node.GetType().ToString() + "]";
             }
-            return node.ToString() + " : [" + (node as Node).NodeType + "]";
+            return node.ToString() + " : [" + node.GetType().ToString() + "]";
         }
 #endif
 
@@ -319,6 +252,39 @@ namespace Lisp
         public class Token
         {
             /// <summary>
+            /// Debugging Information
+            /// </summary>
+            /// <remarks>When the exception has occured, this information such as line number, column, souce code line will be shown.</remarks>
+            public class DebugInfo
+            {
+                /// <summary>
+                /// Line number
+                /// </summary>
+                public int Line { get; set; }
+                /// <summary>
+                /// Column number
+                /// </summary>
+                public int Offset { get; set; }
+                /// <summary>
+                /// Original source code line
+                /// </summary>
+                public string ThisCodeLine { get; set; }
+
+                /// <summary>
+                /// DebugInfo constructor
+                /// </summary>
+                /// <param name="line">Line number</param>
+                /// <param name="offset">Column number</param>
+                /// <param name="thisLine">Original source code line</param>
+                public DebugInfo(int line = -1, int offset = -1, string thisLine = "")
+                {
+                    Line = line;
+                    Offset = offset;
+                    ThisCodeLine = thisLine;
+                }
+            }
+
+            /// <summary>
             /// Type of Token
             /// </summary>
             public TokenType Type { get; set; }
@@ -379,22 +345,6 @@ namespace Lisp
         }
 
         /// <summary>
-        /// Check the symbol name is acceptable.
-        /// </summary>
-        /// <param name="name">Symbol name</param>
-        /// <returns>True if the name is acceptable, otherwise false.</returns>
-        /// <remarks>
-        /// Acceptable Symbol name
-        ///  - At the first letter, only number, character, =, +, *, &lt;, &gt;, /, -, ! is acceptable.
-        ///  - In the Symbol name, only number, character, _, ., ?, =, &lt;, &gt;, - is acceptable.
-        /// </remarks>
-        static bool IsSymbolNameOk(string name)
-        {
-            Regex reg = new Regex(@"^[\w=\+\*\<\>/\-!%]([\w_\.\?=\<\>\-])*$");
-            return reg.IsMatch(name);
-        }
-
-        /// <summary>
         /// Create List# Tree
         /// </summary>
         /// <param name="Item">Current list</param>
@@ -425,15 +375,28 @@ namespace Lisp
                     case TokenType.CloseParenthesis:
                         return i;
                     case TokenType.Number:
-                        Item.Add(new Node(expression[i].Type, decimal.Parse(expression[i].Value), expression[i].OriginalCode));
+                        try
+                        {
+                            long result = 0;
+                            if (long.TryParse(expression[i].Value, out result))
+                            {
+                                Item.Add(result);
+                            }
+                            else
+                            {
+                                Item.Add(double.Parse(expression[i].Value));
+                            }
+                        }
+                        catch
+                        {
+                            throw new NumberError(expression[i]);
+                        }
                         break;
                     case TokenType.String:
-                        Item.Add(new Node(expression[i].Type, expression[i].Value, expression[i].OriginalCode));
+                        Item.Add(expression[i].Value);
                         break;
                     case TokenType.Symbol:
-                        if (!IsSymbolNameOk(expression[i].Value))
-                            throw new UnexpectedTokenError(expression[i]);
-                        Item.Add(new Node(expression[i].Type, expression[i].Value, expression[i].OriginalCode));
+                        Item.Add(new Symbol(expression[i].Value));
                         break;
                     case TokenType.Unknown:
                         throw new UnexpectedTokenError(expression[i]);
@@ -449,7 +412,50 @@ namespace Lisp
         /// <returns>Tokenized source code.</returns>
         static Token[] PreProcess(string expression)
         {
-            System.Text.RegularExpressions.Regex reg = new System.Text.RegularExpressions.Regex(@"(?<OpenParenthesis>[\(\{\[])|(?<CloseParenthesis>[\)\]\}])|(?<Number>[0-9]+([\.]?[0-9]*)?)|(?<String>""[^\""]*""|'[^\']*')|(?<Symbol>[^\(\{\[\)\}\]\s\\]+)", System.Text.RegularExpressions.RegexOptions.ExplicitCapture);
+            /*
+            List<Token> toks = new List<Token> ();
+            int j;
+            for (int i = 0; i < expression.Length; ++i)
+            {
+                Token curTok = null;
+                switch (expression[i])
+                {
+                    case '(':
+                    case '{':
+                    case '[':
+                        curTok = new Token(expression[i].ToString(), TokenType.OpenParenthesis);
+                        curTok.SetThisCodeLine(i, expression);
+                        toks.Add(curTok);
+                        break;
+                    case ')':
+                    case '}':
+                    case ']':
+                        curTok = new Token(expression[i].ToString(), TokenType.CloseParenthesis);
+                        curTok.SetThisCodeLine(i, expression);
+                        toks.Add(curTok);
+                        break;
+                    case '"':
+                        for (j = i + 1; j < expression.Length; ++j)
+                        {
+                            if (expression[j] == '"' && expression[j - 1] != '\\')
+                            {
+                                curTok = new Token(expression.Substring(i + 1, j - i - 1));
+                                curTok.SetThisCodeLine(i, expression);
+                                break;
+                            }
+                        }
+                        if (j == expression.Length)
+                        {
+                            curTok = new Token("", TokenType.Unknown);
+                            curTok.SetThisCodeLine(expression.Length, expression);
+                            throw new TokenizingError(curTok, "There's no close \"(quote)");
+                        }
+                        toks.Add(curTok);
+                        break;
+                }
+            }*/
+
+            System.Text.RegularExpressions.Regex reg = new System.Text.RegularExpressions.Regex(@"(?<OpenParenthesis>[\(\{\[])|(?<CloseParenthesis>[\)\]\}])|(?<Number>[0-9]+([\.]?[0-9]*)?)|(?<String>""[^\""]*""|'[^\']*')|(?<Symbol>[^\(\{\[\)\}\]\s\\\""]+)", System.Text.RegularExpressions.RegexOptions.ExplicitCapture);
             MatchCollection matches = reg.Matches(expression);
 
             Token[] result = new Token[matches.Count + 2];

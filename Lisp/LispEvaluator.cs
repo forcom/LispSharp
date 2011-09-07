@@ -8,350 +8,104 @@ namespace Lisp
     public class LispEvaluator
     {
         public class RuntimeError : Exception {
-            static string GetErrorMessage(Node token, string message)
-            {
-                string result;
-
-                if (token != null)
-                {
-                    StringBuilder blankcursor = new StringBuilder(token.OriginalCode.Offset + token.Value.ToString().Length);
-                    for (int i = 0; i < token.OriginalCode.Offset; ++i) blankcursor.Append(' ');
-                    for (int i = 0; i < token.Value.ToString().Length; ++i) blankcursor.Append('~');
-                    result = string.Join("\n", message, "Code at [" + token.OriginalCode.Line + ":" + token.OriginalCode.Offset + "]", token.OriginalCode.ThisCodeLine, blankcursor.ToString());
-                }
-                else
-                {
-                    result = message;
-                }
-                return result;
-            }
-
             /// <summary>
             /// RuntimeError Exception Construtor
             /// </summary>
-            /// <param name="token">The token that occurs the error.</param>
             /// <param name="message">Messages to show.</param>
-            public RuntimeError(Node token, string message = "Syntax error has occured.") : base(GetErrorMessage(token, message)) { }
+            public RuntimeError(string message = "Syntax error has occured.") : base(message) { }
         }
 
-        public class NotEnoughArguments : RuntimeError
-        {
-            public NotEnoughArguments(Node token) : base(token, (string)token.Value + " needs more arguments.") { }
-        }
-        public class TooMuchArguments : RuntimeError
-        {
-            public TooMuchArguments(Node token) : base(token, "There are too much arguments") { }
-        }
         public class DividedZero : RuntimeError
         {
-            public DividedZero(Node token) : base(token, "Divided by 0!") { }
+            public DividedZero(Symbol token = null) : base("Divided by 0!") { }
         }
         public class NotNumber : RuntimeError
         {
-            public NotNumber(Node token) : base(token, "Cannot calculate with non-number") { }
+            public NotNumber(Symbol token = null) : base("Cannot calculate with non-number") { }
         }
         public class NotFunctionApply : RuntimeError
         {
-            public NotFunctionApply(Node token) : base(token, "Cannot apply " + token.Value + " as function") { }
+            public NotFunctionApply(Symbol token) : base("Cannot apply " + token + " as function") { }
         }
         public class Uncomparable : RuntimeError
         {
-            public Uncomparable(Node token) : base(token, "Cannot compare arguments") { }
+            public Uncomparable(Symbol token = null) : base("Cannot compare arguments") { }
         }
         public class ImcompatibleCalculation : RuntimeError
         {
-            public ImcompatibleCalculation(Node token) : base(token, "Not compatible calculation") { }
+            public ImcompatibleCalculation(Symbol token = null) : base("Not compatible calculation") { }
         }
         public class UnknownElement : RuntimeError
         {
-            public UnknownElement(Node token = null) : base(token, "Unknown Elements") { }
+            public UnknownElement(Symbol token = null) : base("Unknown Elements") { }
         }
         public class UndefinedSymbol : RuntimeError
         {
-            public UndefinedSymbol(Node token) : base(token, token.Value + " is not defined") { }
+            public UndefinedSymbol(Symbol token) : base(token + " is not defined") { }
         }
 
-        delegate object apply(Node symbol, List<object> list, IDictionary<Node, object> environment);
-        delegate dynamic evaluate(object expression, IDictionary<Node, object> environment);
+        delegate dynamic apply(List<object> list, IDictionary<Symbol, object> environment);
+        delegate dynamic evaluate(object expression, IDictionary<Symbol, object> environment);
 
-        static dynamic Add(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count < 2)
-                throw new NotEnoughArguments(symbol);
-
-            decimal x = 0;
-            foreach (Node c in list)
-            {
-                decimal arg;
-                try
-                {
-                    arg = Evaluate(c, environment);
-                }
-                catch
-                {
-                    throw new NotNumber(symbol);
-                }
-                x += arg;
-            }
-            return x;
-        }
-        static dynamic Subtract(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count == 0)
-                throw new NotEnoughArguments(symbol);
-
-            decimal x;
-
-            if (list.Count == 1)
-            {
-                try
-                {
-                    x = -Evaluate(list[0], environment);
-                    return x;
-                }
-                catch
-                {
-                    throw new NotNumber(symbol);
-                }
-            }
-
-            try
-            {
-                x = Evaluate(list[0], environment);
-            }
-            catch
-            {
-                throw new NotNumber(list[0] as Node);
-            }
-
-            for (int i = 1; i < list.Count; ++i)
-            {
-                decimal arg;
-                try
-                {
-                    arg = Evaluate(list[i], environment);
-                }
-                catch
-                {
-                    throw new NotNumber(symbol);
-                }
-                x -= arg;
-            }
-            return x;
-        }
-        static dynamic Multiply(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count < 2)
-                throw new NotEnoughArguments(symbol);
-
-            decimal x = 1;
-            foreach (Node c in list)
-            {
-                decimal arg;
-                try
-                {
-                    arg = Evaluate(c, environment);
-                }
-                catch
-                {
-                    throw new NotNumber(symbol);
-                }
-                x *= arg;
-            }
-            return x;
-        }
-        static dynamic Divide(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count < 2)
-                throw new NotEnoughArguments(symbol);
-
-            decimal x;
-
-            try
-            {
-                x = Evaluate(list[0], environment);
-            }
-            catch
-            {
-                throw new NotNumber(symbol);
-            }
-
-            for (int i = 1; i < list.Count; ++i)
-            {
-                decimal arg;
-                try
-                {
-                    arg = Evaluate(list[i], environment);
-                    if (arg == 0)
-                        throw new DividedZero(symbol);
-                }
-                catch
-                {
-                    throw new NotNumber(symbol);
-                }
-                x /= arg;
-            }
-            return x;
-        }
-        static dynamic Modular(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count < 2)
-                throw new NotEnoughArguments(symbol);
-
-            decimal x;
-
-            try
-            {
-                x = Evaluate(list[0], environment);
-            }
-            catch
-            {
-                throw new NotNumber(symbol);
-            }
-
-            for ( int i = 1 ; i < list.Count ; ++ i )
-            {
-                decimal arg;
-                try
-                {
-                    arg = Evaluate(list[i], environment);
-
-                    if (arg == 0)
-                        throw new DividedZero(symbol);
-                }
-                catch
-                {
-                    throw new NotNumber(symbol);
-                }
-                x %= arg;
-            }
-            return x;
-        }
-        static dynamic Equal(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count < 2)
-                throw new NotEnoughArguments(symbol);
-
-            dynamic prev = Evaluate(list[0], environment);
-            for (int i = 1; i < list.Count; ++i)
-            {
-                try
-                {
-                    dynamic cur = Evaluate(list[i], environment);
-                    if (prev != cur) return false;
-                    prev = cur;
-                }
-                catch
-                {
-                    throw new Uncomparable(symbol);
-                }
-            }
-            return true;
-        }
-        static dynamic Not(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count != 1)
-                throw new TooMuchArguments(symbol);
-            try
-            {
-                bool res = Evaluate(list, environment);
-                return !res;
-            }
-            catch
-            {
-                throw new ImcompatibleCalculation(symbol);
-            }
-        }
-
-        static dynamic Car(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count == 0)
-                throw new NotEnoughArguments(symbol);
-            return list[0];
-        }
-        static dynamic Cdr(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count < 2)
-                throw new NotEnoughArguments(symbol);
-            List<object> res = new List<object>(list);
-            res.RemoveAt(0);
-            return res;
-        }
-        static dynamic Cons(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            List<object> res = new List<object>();
-            foreach (object i in list)
-            {
-                res.Add(i);
-            }
-            return res;
-        }
-        static dynamic IsNull(Node symbol, List<object> list, IDictionary<Node, object> environment)
-        {
-            if (list.Count == 0) return true;
-            return false;
-        }
-
-        public static dynamic Define(Node symbol, List<object> list, IDictionary<Node, object> environment)
+        public static dynamic Define(List<object> list, IDictionary<Symbol, object> environment)
         {
             return null;
         }
 
-        public static dynamic If(Node symbol, List<object> list, IDictionary<Node, object> environment)
+        public static dynamic If(List<object> list, IDictionary<Symbol, object> environment)
+        {
+            if (list.Count != 3 && list.Count != 4)
+                throw new ArgumentException();
+            if (Evaluate(list[1], environment))
+                return Evaluate(list[2], environment);
+            else if (list.Count == 4)
+                return Evaluate(list[3], environment);
+            return null;
+        }
+
+        public static dynamic Apply(List<object> list, IDictionary<Symbol, object> environment)
         {
             return null;
         }
 
-        public static dynamic Apply(Node symbol, List<object> list, IDictionary<Node, object> environment)
+        public static dynamic Evaluate(object expression, IDictionary<Symbol, object> environment)
         {
-            if (symbol.NodeType != TokenType.Symbol) throw new NotFunctionApply(symbol);
-            return null;
-        }
-
-        public static dynamic Evaluate(object expression, IDictionary<Node, object> environment)
-        {
-            if (expression is Node)
+            if (expression is Symbol)
             {
-                Node exp = expression as Node;
-                if (exp.NodeType != TokenType.Symbol)
-                    throw new NotFunctionApply(exp);
-
+                Symbol exp = expression as Symbol;
+                
                 if (!environment.ContainsKey(exp))
                     throw new UndefinedSymbol(exp);
                 if (environment[exp] is Delegate)
                 {
-                    return ((Delegate)environment[exp]).DynamicInvoke();
+                    return ((Delegate)environment[exp]).DynamicInvoke(new object[] { new List<object>(), environment });
                 }
-                else if (environment[exp] is Node)
+                else if (environment[exp] is Symbol)
                 {
                     return Evaluate(environment[exp], environment);
                 }
                 else
-                    throw new UnknownElement(exp);
+                    return environment[exp];
             }
             else if(expression is List<object>){
                 List<object> lst = expression as List<object>;
-                Node first;
+                Symbol first;
                 try
                 {
-                    first = lst[0] as Node;
+                    first = lst[0] as Symbol;
                 }
                 catch
                 {
                     throw new UnknownElement();
                 }
-
-                if (first.NodeType != TokenType.Symbol)
-                    throw new NotFunctionApply(first);
-
                 //Special Forms Processing
 
-                switch (first.Value.ToString())
+                switch (first.Name)
                 {
                     case "define":
                         return null;
                     case "if":
-                        return null;
+                        return If(lst, environment);
                     case "quote":
                         return null;
                     case "lambda":
@@ -361,64 +115,122 @@ namespace Lisp
                 if (!environment.ContainsKey(first))
                     throw new UndefinedSymbol(first);
 
-                List<object> args = new List<object>();
-                args.RemoveAt(0);
-
-                foreach (object i in lst)
-                {
-                    args.Add(Evaluate(i, environment));
-                }
-
                 if (environment[first] is Delegate)
                 {
-                    (environment[first] as Delegate).DynamicInvoke(new object[]{ first, args });
+                    return (environment[first] as Delegate).DynamicInvoke(new object[] { lst, environment });
                 }
                 else if (environment[first] is List<object>)
                 {
+                    return new apply(Apply).Invoke(lst, environment);
                 }
                 else
                 {
-                    throw new UnknownElement();
+                    throw new NotFunctionApply(first);
                 }
-
-                return Apply(first, args, environment);
             }
-            else
-                throw new UnknownElement();
+            return expression;
         }
 
-        public static void SetInitialEnvironment(IDictionary<Node, object> environment)
+        public static void SetInitialEnvironment(IDictionary<Symbol, object> environment)
         {
-            environment.Add(new Node(TokenType.Symbol, "+"), new apply(Add));
-            environment.Add(new Node(TokenType.Symbol, "-"), new apply(Subtract));
-            environment.Add(new Node(TokenType.Symbol, "*"), new apply(Multiply));
-            environment.Add(new Node(TokenType.Symbol, "/"), new apply(Divide));
-            environment.Add(new Node(TokenType.Symbol, "%"), new apply(Modular));
-            environment.Add(new Node(TokenType.Symbol, "="), new apply(Equal));
+            environment.Add(new Symbol("+"), (apply)((x, y) =>
+                (from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y)).Aggregate((a, b) => a + b)));
+            environment.Add(new Symbol("-"), (apply)((x, y) =>
+                (from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y)).Aggregate((a, b) => a - b)));
+            environment.Add(new Symbol("*"), (apply)((x, y) =>
+                (from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y)).Aggregate((a, b) => a * b)));
+            environment.Add(new Symbol("/"), (apply)((x, y) =>
+                (from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y)).Aggregate((a, b) => a / b)));
+            environment.Add(new Symbol("%"), (apply)((x, y) =>
+                (from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y)).Aggregate((a, b) => a % b)));
+            environment.Add(new Symbol("="), (apply)((x, y) =>
+                (from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y)).Distinct().Count() <= 1));
+            environment.Add(new Symbol(">"), (apply)((x, y) =>
+            {
+                if (x.Count != 3) throw new ArgumentException();
+                return Evaluate(x[1], y) > Evaluate(x[2], y);
+            }));
+            environment.Add(new Symbol("<"), (apply)((x, y) =>
+            {
+                if (x.Count != 3) throw new ArgumentException();
+                return Evaluate(x[1], y) < Evaluate(x[2], y);
+            }));
+            environment.Add(new Symbol(">="), (apply)((x, y) =>
+            {
+                if (x.Count != 3) throw new ArgumentException();
+                return Evaluate(x[1], y) >= Evaluate(x[2], y);
+            }));
+            environment.Add(new Symbol("<="), (apply)((x, y) =>
+            {
+                if (x.Count != 3) throw new ArgumentException();
+                return Evaluate(x[1], y) <= Evaluate(x[2], y);
+            }));
+            environment.Add(new Symbol("!"), (apply)((x, y) =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                return !(bool)Evaluate(x[1], y);
+            }));
 
-            environment.Add(new Node(TokenType.Symbol, "null?"), new apply(IsNull));
-            environment.Add(new Node(TokenType.Symbol, "eval"), new evaluate(Evaluate));
-            environment.Add(new Node(TokenType.Symbol, "apply"), new apply(Apply));
+            environment.Add(new Symbol("car"), (apply)((x, y) => Evaluate(x[1], y)));
+            environment.Add(new Symbol("cdr"), (apply)((x, y) =>
+                from n in x.GetRange(2, x.Count - 2) select Evaluate(n, y)));
+            environment.Add(new Symbol("cons"), (apply)((x, y) =>
+            {
+                if (x.Count != 3) throw new ArgumentException();
+                dynamic a = Evaluate(x[1], y);
+                dynamic b = Evaluate(x[2], y);
+                if (a is List<object> && b is List<object>)
+                    return a.Concat(b);
+                else if (a is List<object>)
+                    return a.Concat(new List<object>(new object[] { b }));
+                else if (b is List<object>)
+                    return new List<object>(new object[] { a }).Concat(b as List<object>);
+                else
+                    return new List<object>(new object[] { a, b });
+            }));
+            environment.Add(new Symbol("list"), (apply)((x, y) =>
+                new List<object>(from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y))));
 
-            environment.Add(new Node(TokenType.Symbol, "t"), true);
-            environment.Add(new Node(TokenType.Symbol, "f"), false);
-            environment.Add(new Node(TokenType.Symbol, "nil"), null);
+            environment.Add(new Symbol("null?"), (apply)((x, y) => Evaluate(x, y).Count == 1));
+            environment.Add(new Symbol("eval"), (apply)((x, y) =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                return Evaluate(from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y), y);
+            }));
+            environment.Add(new Symbol("apply"), (apply)((x, y) =>
+            {
+                if (x.Count != 3) throw new ArgumentException();
+                return Apply(new List<object>(new object[] { x[1], from n in x.GetRange(2, x.Count - 2) select Evaluate(n, y) }), y);
+            }));
+
+            environment.Add(new Symbol("display"), (apply)((x, y) =>
+            {
+                Console.Write(from n in x.GetRange(1, x.Count - 1) select Evaluate(n, y));
+                return null;
+            }));
+            environment.Add(new Symbol("newline"), (apply)((x, y) =>
+            {
+                Console.WriteLine();
+                return null;
+            }));
+
+            environment.Add(new Symbol("t"), true);
+            environment.Add(new Symbol("f"), false);
+            environment.Add(new Symbol("nil"), null);
         }
 
-        public static void StartEvaluate(List<object> expression, IDictionary<Node, object> customEnvironment = null)
+        public static void StartEvaluate(List<object> expression, IDictionary<Symbol, object> customEnvironment = null)
         {
-            Dictionary<Node, object> env ;
+            Dictionary<Symbol, object> env ;
             if (customEnvironment != null)
-                env = new Dictionary<Node, object>(customEnvironment);
+                env = new Dictionary<Symbol, object>(customEnvironment);
             else
-                env = new Dictionary<Node, object>();
+                env = new Dictionary<Symbol, object>();
             SetInitialEnvironment(env);
 
             for (int i = 0; i < expression.Count; ++i)
             {
-                dynamic res;
-                res = Evaluate(expression[i], env);
-                Console.WriteLine(res);
+                Evaluate(expression[i], env);
             }
         }
     }

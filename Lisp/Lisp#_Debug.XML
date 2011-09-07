@@ -45,80 +45,9 @@
             List
             </summary>
         </member>
-        <member name="T:Lisp.Node">
+        <member name="T:Lisp.Symbol">
             <summary>
-            Node.
-            </summary>
-            <remarks>After the tokenizing is over, <c>LispParser</c> would make a lisp tree.
-            To make lisp tree, <c>Node</c> will be used</remarks>
-        </member>
-        <member name="M:Lisp.Node.#ctor(Lisp.TokenType,System.Object,Lisp.DebugInfo)">
-            <summary>
-            Node Constructor
-            </summary>
-            <param name="type">Type of <c>Node</c></param>
-            <param name="debugInfo">Debugging Information</param>
-            <param name="value">Value of <c>Node</c></param>
-            <remarks>Default value of <c>Node</c> is a Unknown typed NULL Node.
-            Default source code position is -1.</remarks>
-        </member>
-        <member name="M:Lisp.Node.ToString">
-            <summary>
-            (Override) ToString Method
-            </summary>
-            <returns>Returns value of <c>Node</c></returns>
-        </member>
-        <member name="M:Lisp.Node.Equals(System.Object)">
-            <summary>
-            (Override) Equals Method
-            </summary>
-            <param name="obj">The object to compare</param>
-            <returns>True if obj equals to this, otherwise false</returns>
-        </member>
-        <member name="P:Lisp.Node.Value">
-            <summary>
-            Node's Value
-            </summary>
-            <remarks>It can be Number, String, or Symbol.
-            It is defined by <c>TokenType</c>.</remarks>
-        </member>
-        <member name="P:Lisp.Node.NodeType">
-            <summary>
-            Type of <c>Node</c>
-            </summary>
-        </member>
-        <member name="P:Lisp.Node.OriginalCode">
-            <summary>
-            Original souce code line.
-            </summary>
-        </member>
-        <member name="T:Lisp.DebugInfo">
-            <summary>
-            Debugging Information
-            </summary>
-            <remarks>When the exception has occured, this information such as line number, column, souce code line will be shown.</remarks>
-        </member>
-        <member name="M:Lisp.DebugInfo.#ctor(System.Int32,System.Int32,System.String)">
-            <summary>
-            DebugInfo constructor
-            </summary>
-            <param name="line">Line number</param>
-            <param name="offset">Column number</param>
-            <param name="thisLine">Original source code line</param>
-        </member>
-        <member name="P:Lisp.DebugInfo.Line">
-            <summary>
-            Line number
-            </summary>
-        </member>
-        <member name="P:Lisp.DebugInfo.Offset">
-            <summary>
-            Column number
-            </summary>
-        </member>
-        <member name="P:Lisp.DebugInfo.ThisCodeLine">
-            <summary>
-            Original source code line
+            Symbol
             </summary>
         </member>
         <member name="T:Lisp.LispParser">
@@ -168,18 +97,6 @@
                 3.14 : [Number]
                 d : [Symbol]
             </example>
-        </member>
-        <member name="M:Lisp.LispParser.IsSymbolNameOk(System.String)">
-            <summary>
-            Check the symbol name is acceptable.
-            </summary>
-            <param name="name">Symbol name</param>
-            <returns>True if the name is acceptable, otherwise false.</returns>
-            <remarks>
-            Acceptable Symbol name
-             - At the first letter, only number, character, =, +, *, &lt;, &gt;, /, -, ! is acceptable.
-             - In the Symbol name, only number, character, _, ., ?, =, &lt;, &gt;, - is acceptable.
-            </remarks>
         </member>
         <member name="M:Lisp.LispParser.TreeAnalyze(System.Collections.Generic.List{System.Object},Lisp.LispParser.Token[],System.Int32,System.String)">
             <summary>
@@ -297,7 +214,7 @@
             <remarks><c>Token</c> is used in <c>PreProcess</c> method.
             <c>Token</c> is created from a raw string source code </remarks>
         </member>
-        <member name="M:Lisp.LispParser.Token.#ctor(System.String,Lisp.TokenType,Lisp.DebugInfo)">
+        <member name="M:Lisp.LispParser.Token.#ctor(System.String,Lisp.TokenType,Lisp.LispParser.Token.DebugInfo)">
             <summary>
             Token Constructor
             </summary>
@@ -333,6 +250,35 @@
         <member name="P:Lisp.LispParser.Token.OriginalCode">
             <summary>
             Original source code line.
+            </summary>
+        </member>
+        <member name="T:Lisp.LispParser.Token.DebugInfo">
+            <summary>
+            Debugging Information
+            </summary>
+            <remarks>When the exception has occured, this information such as line number, column, souce code line will be shown.</remarks>
+        </member>
+        <member name="M:Lisp.LispParser.Token.DebugInfo.#ctor(System.Int32,System.Int32,System.String)">
+            <summary>
+            DebugInfo constructor
+            </summary>
+            <param name="line">Line number</param>
+            <param name="offset">Column number</param>
+            <param name="thisLine">Original source code line</param>
+        </member>
+        <member name="P:Lisp.LispParser.Token.DebugInfo.Line">
+            <summary>
+            Line number
+            </summary>
+        </member>
+        <member name="P:Lisp.LispParser.Token.DebugInfo.Offset">
+            <summary>
+            Column number
+            </summary>
+        </member>
+        <member name="P:Lisp.LispParser.Token.DebugInfo.ThisCodeLine">
+            <summary>
+            Original source code line
             </summary>
         </member>
         <member name="T:Lisp.ParserTest">
@@ -376,11 +322,10 @@
             </summary>
             <param name="ParserTest">Test Lisp# Parser</param>
         </member>
-        <member name="M:Lisp.LispEvaluator.RuntimeError.#ctor(Lisp.Node,System.String)">
+        <member name="M:Lisp.LispEvaluator.RuntimeError.#ctor(System.String)">
             <summary>
             RuntimeError Exception Construtor
             </summary>
-            <param name="token">The token that occurs the error.</param>
             <param name="message">Messages to show.</param>
         </member>
         <member name="T:Lisp.Program.Lisp">

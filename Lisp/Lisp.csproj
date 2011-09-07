@@ -51,6 +51,18 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Test.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Test\Parser\test04.out" />
+    <None Include="Test\Parser\test04.in" />
+    <None Include="Test\Parser\test00.in" />
+    <None Include="Test\Parser\test00.out" />
+    <None Include="Test\Parser\test01.in" />
+    <None Include="Test\Parser\test01.out" />
+    <None Include="Test\Parser\test02.in" />
+    <None Include="Test\Parser\test02.out" />
+    <None Include="Test\Parser\test03.in" />
+    <None Include="Test\Parser\test03.out" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
