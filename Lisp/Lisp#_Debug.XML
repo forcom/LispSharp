@@ -316,7 +316,7 @@
             Lisp# Test Module
             </summary>
         </member>
-        <member name="M:Lisp.Test.StartTest(System.Boolean)">
+        <member name="M:Lisp.Test.StartTest(System.Boolean,System.Boolean)">
             <summary>
             Start Lisp# Module Test
             </summary>

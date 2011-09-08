@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.IO;
 
 namespace Lisp {
 #if DEBUG
@@ -20,6 +21,8 @@ namespace Lisp {
     /// Test Lisp# Parser Module
     /// </summary>
     public class ParserTest {
+
+        Func<string, string> NormalizeNL = (string s) => s.Replace("\r", "").Trim();
 
         /// <summary>
         /// Test Lisp# Parser
@@ -41,12 +44,16 @@ namespace Lisp {
         /// </example>
         public bool TestParser(string testFile = "Test/Parser/test00.in", string resultFile = "Test/Parser/test00.out", bool ConsoleWrite = false)
         {
-            System.IO.StreamReader fr = new System.IO.StreamReader(testFile);
-            string codeString = fr.ReadToEnd();
-            fr.Close();
-            fr = new System.IO.StreamReader(resultFile);
-            string resultString = fr.ReadToEnd();
-            fr.Close();
+            string codeString = null;
+            string resultString = null;
+            using (StreamReader fr = new StreamReader(testFile))
+            {
+                codeString = fr.ReadToEnd();
+            }
+            using (StreamReader fr = new StreamReader(resultFile))
+            {
+                resultString = fr.ReadToEnd();
+            }
 
             List<object> code;
             try
@@ -66,9 +73,7 @@ namespace Lisp {
                 Debug.WriteLine(resultCombined);
             }
 
-            bool testResult = resultString != resultCombined;
-
-            return testResult;
+            return NormalizeNL(resultString) != NormalizeNL(resultCombined);
         }
 
         /// <summary>
@@ -85,6 +90,51 @@ namespace Lisp {
         }
     }
 
+    public class EvaluatorTest
+    {
+        Func<string, string> NormalizeNL = (string s) => s.Replace("\r", "").Trim();
+
+        public bool TestEvaluator(string testFile = "", string resultFile = "", bool ConsoleWrite = false)
+        {
+            string test = null;
+            string result = null;
+            using (StreamReader fs = new StreamReader(testFile))
+            {
+                test = fs.ReadToEnd();
+            }
+            using (StreamReader fs = new StreamReader(resultFile))
+            {
+                result = fs.ReadToEnd();
+            }
+
+            StringWriter buffer = new StringWriter();
+            var custom = LispEvaluator.CreateInitialEnvironment();
+            custom[new Symbol("display")] = (LispEvaluator.apply)(x =>
+            {
+                if (x.Count != 1) throw new ArgumentException();
+                if (x[0] is List<object>) buffer.WriteLine(LispEvaluator.ParsedList(x[0]));
+                else buffer.WriteLine(x[0]);
+                return null;
+            });
+
+            List<object> code = LispParser.Parse(test);
+            LispEvaluator.StartEvaluate(code, custom);
+            string execResult = buffer.ToString();
+
+            if (ConsoleWrite)
+            {
+                Console.WriteLine(execResult);
+            }
+
+            return NormalizeNL(execResult) != NormalizeNL(result);
+        }
+
+        public void StartTest()
+        {
+            Debug.WriteLineIf(TestEvaluator(@"Y:\LispSharp\Lisp\Test\Evaluator\test.lisp", @"Y:\LispSharp\Lisp\Test\Evaluator\expected.txt"), "Test Fail");
+        }
+    }
+
     /// <summary>
     /// Lisp# Test Module
     /// </summary>
@@ -94,10 +144,15 @@ namespace Lisp {
         /// Start Lisp# Module Test
         /// </summary>
         /// <param name="ParserTest">Test Lisp# Parser</param>
-        public void StartTest ( bool ParserTest = true ) {
+        public void StartTest ( bool ParserTest = true , bool EvaluatorTest = true ) {
             if ( ParserTest ) {
                 ParserTest parseTest = new ParserTest ( );
                 parseTest.StartTest ( );
+            }
+            if (EvaluatorTest)
+            {
+                EvaluatorTest evalutateTest = new EvaluatorTest();
+                evalutateTest.StartTest();
             }
         }
     }

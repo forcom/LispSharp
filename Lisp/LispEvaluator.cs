@@ -69,10 +69,10 @@ namespace Lisp
             }
         }
 
-        delegate dynamic apply(List<object> list);
-        delegate dynamic special(List<object> list, Environment environment);
+        public delegate dynamic apply(List<object> list);
+        public delegate dynamic special(List<object> list, Environment environment);
 
-        public static Environment SpecialForms = new Environment();
+        public static IDictionary<Symbol, special> SpecialForms = CreateSpecialForms();
 
         public static string ParsedList(object node)
         {
@@ -145,106 +145,110 @@ namespace Lisp
             return expression;
         }
 
-        public static void SetInitialEnvironment(Environment environment)
+        public static IDictionary<Symbol, special> CreateSpecialForms()
         {
-            if (SpecialForms.Count == 0)
+            var SpecialForms = new Dictionary<Symbol, special>();
+            SpecialForms.Add(new Symbol("if"), (special)((x, y) =>
             {
-                SpecialForms.Add(new Symbol("if"), (special)((x, y) =>
-                {
-                    if (x.Count != 2 && x.Count != 3)
-                        throw new ArgumentException();
-                    if (Evaluate(x[0], y))
-                        return Evaluate(x[1], y);
-                    else if (x.Count == 3)
-                        return Evaluate(x[2], y);
-                    return null;
-                }));
-                SpecialForms.Add(new Symbol("define"), (special)((x, y) =>
-                {
-                    if (x.Count != 2) throw new ArgumentException();
-                    if (!(x[0] is Symbol)) throw new ArgumentException();
+                if (x.Count != 2 && x.Count != 3)
+                    throw new ArgumentException();
+                if (Evaluate(x[0], y))
+                    return Evaluate(x[1], y);
+                else if (x.Count == 3)
+                    return Evaluate(x[2], y);
+                return null;
+            }));
+            SpecialForms.Add(new Symbol("define"), (special)((x, y) =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                if (!(x[0] is Symbol)) throw new ArgumentException();
 
-                    if (x[1] is Symbol)
-                    {
-                        environment.Add(x[0] as Symbol, environment[x[1] as Symbol]);
-                    }
-                    else
-                    {
-                        environment.Add(x[0] as Symbol, Evaluate(x[1], y));
-                    }
-                    return null;
-                }));
-                SpecialForms.Add(new Symbol("quote"), (special)((x, y) =>
+                if (x[1] is Symbol)
                 {
-                    if (x.Count != 1) throw new ArgumentException();
-                    return x[0];
-                }));
-                SpecialForms.Add(new Symbol("lambda"), (special)((x, y) =>
+                    y.Add(x[0] as Symbol, y[x[1] as Symbol]);
+                }
+                else
                 {
-                    if (x.Count != 2) throw new ArgumentException();
-                    if (!(x[0] is List<object>)) throw new ArgumentException();
-                    apply lambda = a =>
-                    {
-                        Environment child = new Environment(y);
-                        List<object> args = x[0] as List<object>;
-                        for (int i = 0; i < args.Count; ++i)
-                        {
-                            if (!(args[i] is Symbol)) throw new ArgumentException();
-                            child.Add(args[i] as Symbol, null);
-                        }
-
-                        if (a.Count != args.Count) throw new ArgumentException();
-                        for (int i = 0; i < args.Count; ++i)
-                        {
-                            child[args[i] as Symbol] = a[i];
-                        }
-                        return Evaluate(x[1], child);
-                    };
-                    return lambda;
-                }));
-                SpecialForms.Add(new Symbol("let"), (special)((x, y) =>
+                    y.Add(x[0] as Symbol, Evaluate(x[1], y));
+                }
+                return null;
+            }));
+            SpecialForms.Add(new Symbol("quote"), (special)((x, y) =>
+            {
+                if (x.Count != 1) throw new ArgumentException();
+                return x[0];
+            }));
+            SpecialForms.Add(new Symbol("lambda"), (special)((x, y) =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                if (!(x[0] is List<object>)) throw new ArgumentException();
+                apply lambda = a =>
                 {
-                    if (x.Count <= 2) throw new ArgumentException();
-                    if (!(x[0] is List<object>)) throw new ArgumentException();
                     Environment child = new Environment(y);
-                    foreach (List<object> i in x[0] as List<object>)
+                    List<object> args = x[0] as List<object>;
+                    for (int i = 0; i < args.Count; ++i)
                     {
-                        if (i.Count != 2) throw new ArgumentException();
-                        if (!(i[0] is Symbol)) throw new ArgumentException();
-                        if (i[1] is Symbol)
-                        {
-                            if (!y.ContainsKey(i[1] as Symbol)) throw new ArgumentException();
-                            child.Add(i[0] as Symbol, y[i[1] as Symbol]);
-                        }
-                        else
-                        {
-                            child.Add(i[0] as Symbol, i[1]);
-                        }
+                        if (!(args[i] is Symbol)) throw new ArgumentException();
+                        child.Add(args[i] as Symbol, null);
                     }
-                    dynamic res = null;
-                    for (int i = 1; i < x.Count; ++i)
+
+                    if (a.Count != args.Count) throw new ArgumentException();
+                    for (int i = 0; i < args.Count; ++i)
                     {
-                        res = Evaluate(x[i], child);
+                        child[args[i] as Symbol] = a[i];
                     }
-                    return res;
-                }));
-                SpecialForms.Add(new Symbol("setf!"), (special)((x, y) =>
+                    return Evaluate(x[1], child);
+                };
+                return lambda;
+            }));
+            SpecialForms.Add(new Symbol("let"), (special)((x, y) =>
+            {
+                if (x.Count <= 2) throw new ArgumentException();
+                if (!(x[0] is List<object>)) throw new ArgumentException();
+                Environment child = new Environment(y);
+                foreach (List<object> i in x[0] as List<object>)
                 {
-                    if (x.Count != 2) throw new ArgumentException();
-                    if (!(x[0] is Symbol)) throw new ArgumentException();
-                    if (!y.ContainsKey(x[0] as Symbol)) throw new UndefinedSymbol(x[0] as Symbol);
-                    if (x[1] is Symbol)
+                    if (i.Count != 2) throw new ArgumentException();
+                    if (!(i[0] is Symbol)) throw new ArgumentException();
+                    if (i[1] is Symbol)
                     {
-                        if (!y.ContainsKey(x[1] as Symbol)) throw new UndefinedSymbol(x[1] as Symbol);
-                        y[x[0] as Symbol] = y[x[1] as Symbol];
+                        if (!y.ContainsKey(i[1] as Symbol)) throw new ArgumentException();
+                        child.Add(i[0] as Symbol, y[i[1] as Symbol]);
                     }
                     else
                     {
-                        y[x[0] as Symbol] = Evaluate(x[1], y);
+                        child.Add(i[0] as Symbol, i[1]);
                     }
-                    return y[x[0] as Symbol];
-                }));
-            }
+                }
+                dynamic res = null;
+                for (int i = 1; i < x.Count; ++i)
+                {
+                    res = Evaluate(x[i], child);
+                }
+                return res;
+            }));
+            SpecialForms.Add(new Symbol("setf!"), (special)((x, y) =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                if (!(x[0] is Symbol)) throw new ArgumentException();
+                if (!y.ContainsKey(x[0] as Symbol)) throw new UndefinedSymbol(x[0] as Symbol);
+                if (x[1] is Symbol)
+                {
+                    if (!y.ContainsKey(x[1] as Symbol)) throw new UndefinedSymbol(x[1] as Symbol);
+                    y[x[0] as Symbol] = y[x[1] as Symbol];
+                }
+                else
+                {
+                    y[x[0] as Symbol] = Evaluate(x[1], y);
+                }
+                return y[x[0] as Symbol];
+            }));
+            return SpecialForms;
+        }
+
+        public static Environment CreateInitialEnvironment()
+        {
+            Environment environment = new Environment();
 
             environment.Add(new Symbol("+"), (apply)(x =>
                 x.Aggregate((dynamic a, dynamic b) => a + b)));
@@ -349,21 +353,17 @@ namespace Lisp
             environment.Add(new Symbol("#t"), true);
             environment.Add(new Symbol("#f"), false);
             environment.Add(new Symbol("nil"), null);
+
+            return environment;
         }
 
-        public static dynamic StartEvaluate(List<object> expression, Environment customEnvironment = null)
+        public static dynamic StartEvaluate(List<object> expression, Environment environment)
         {
-            Environment env;
             dynamic res = null;
-            if (customEnvironment != null)
-                env = new Environment(customEnvironment);
-            else
-                env = new Environment();
-            SetInitialEnvironment(env);
 
             for (int i = 0; i < expression.Count; ++i)
             {
-                res = Evaluate(expression[i], env);
+                res = Evaluate(expression[i], environment);
             }
             return res;
         }

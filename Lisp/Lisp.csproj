@@ -52,6 +52,7 @@
     <Compile Include="Test.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Test\Evaluator\test.lisp" />
     <None Include="Test\Parser\test04.out" />
     <None Include="Test\Parser\test04.in" />
     <None Include="Test\Parser\test00.in" />
@@ -62,6 +63,9 @@
     <None Include="Test\Parser\test02.out" />
     <None Include="Test\Parser\test03.in" />
     <None Include="Test\Parser\test03.out" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Test\Evaluator\expected.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
