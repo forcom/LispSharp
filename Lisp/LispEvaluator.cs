@@ -43,8 +43,8 @@ namespace Lisp
 
         public class Environment : Dictionary<Symbol, object>
         {
-            public IDictionary<Symbol, object> Parent { get; set; }
-            public Environment(IDictionary<Symbol, object> parent = null)
+            public Environment Parent { get; set; }
+            public Environment(Environment parent = null)
             {
                 Parent = parent;
             }
@@ -116,29 +116,32 @@ namespace Lisp
             else if (expression is List<object>)
             {
                 List<object> lst = expression as List<object>;
-                Symbol first;
-                if (!(lst[0] is Symbol)) throw new UnknownElement();
-                first = lst[0] as Symbol;
+                //Symbol first;
+                //if (lst[0] is Symbol) throw new UnknownElement();
+                //first = lst[0] as Symbol;
 
-                if (SpecialForms.ContainsKey(first))
-                    return (SpecialForms[first] as special).Invoke(lst.GetRange(1, lst.Count - 1), environment);
-
-                if (!environment.ContainsKey(first))
-                    throw new UndefinedSymbol(first);
-
-                if (environment[first] is Delegate)
+                if (lst[0] is Symbol)
                 {
-                    for (int i = 1; i < lst.Count; ++i)
-                    {
-                        if (lst[i] is Symbol && environment[lst[i] as Symbol] is Delegate)
-                            lst[i] = environment[lst[i] as Symbol];
-                        lst[i] = Evaluate(lst[i], environment);
-                    }
-                    return (environment[first] as apply).Invoke(lst.GetRange(1, lst.Count - 1));
+                    if (SpecialForms.ContainsKey(lst[0] as Symbol))
+                        return (SpecialForms[lst[0] as Symbol] as special).Invoke(lst.GetRange(1, lst.Count - 1), environment);
+                }
+
+                for (int i = 0; i < lst.Count; ++i)
+                {
+                    if (lst[i] is Symbol && environment[lst[i] as Symbol] is Delegate)
+                        lst[i] = environment[lst[i] as Symbol];
+                    else lst[i] = Evaluate(lst[i], environment);
+                }
+
+                //if (!environment.ContainsKey(first))throw new UndefinedSymbol(first);
+
+                if (lst[0] is Delegate)
+                {
+                    return (lst[0] as apply).Invoke(lst.GetRange(1, lst.Count - 1));
                 }
                 else
                 {
-                    throw new NotFunctionApply(first);
+                    throw new NotFunctionApply();
                 }
             }
             return expression;
@@ -163,8 +166,21 @@ namespace Lisp
                     if (x.Count != 2) throw new ArgumentException();
                     if (!(x[0] is Symbol)) throw new ArgumentException();
 
-                    if (x[1] is Symbol) environment.Add(x[0] as Symbol, environment[x[1] as Symbol]);
-                    else environment.Add(x[0] as Symbol, Evaluate(x[1], y));
+                    if (x[1] is Symbol)
+                    {
+                        if (environment[x[1] as Symbol] is Delegate)
+                            environment.Add(x[0] as Symbol, (environment[x[1] as Symbol] as Delegate).Clone());
+                        else
+                            environment.Add(x[0] as Symbol, environment[x[1] as Symbol]);
+                    }
+                    else
+                    {
+                        dynamic res = Evaluate(x[1], y);
+                        if (res is Delegate)
+                            environment.Add(x[0] as Symbol, (res as Delegate).Clone());
+                        else
+                            environment.Add(x[0] as Symbol, res);
+                    }
                     return null;
                 }));
                 SpecialForms.Add(new Symbol("quote"), (special)((x, y) =>
@@ -174,9 +190,25 @@ namespace Lisp
                 }));
                 SpecialForms.Add(new Symbol("lambda"), (special)((x, y) =>
                 {
+                    if (x.Count != 2) throw new ArgumentException();
+                    if (!(x[0] is List<object>)) throw new ArgumentException();
                     Environment child = new Environment(y);
-                    apply lambda = a => Evaluate(a, child);
-                    return null;
+                    List<object> args = x[0] as List<object>;
+                    for (int i = 0; i < args.Count; ++i)
+                    {
+                        if (!(args[i] is Symbol)) throw new ArgumentException();
+                        child.Add(args[i] as Symbol, null);
+                    }
+                    apply lambda = a =>
+                    {
+                        if (a.Count != args.Count) throw new ArgumentException();
+                        for (int i = 0; i < args.Count; ++i)
+                        {
+                            child[args[i] as Symbol] = a[i];
+                        }
+                        return Evaluate(x[1], child);
+                    };
+                    return lambda;
                 }));
                 SpecialForms.Add(new Symbol("let"), (special)((x, y) =>
                 {
@@ -218,7 +250,7 @@ namespace Lisp
                     {
                         y[x[0] as Symbol] = Evaluate(x[1], y);
                     }
-                    return null;
+                    return y[x[0] as Symbol];
                 }));
             }
 
@@ -327,7 +359,7 @@ namespace Lisp
             environment.Add(new Symbol("nil"), null);
         }
 
-        public static dynamic StartEvaluate(List<object> expression, IDictionary<Symbol, object> customEnvironment = null)
+        public static dynamic StartEvaluate(List<object> expression, Environment customEnvironment = null)
         {
             Environment env;
             dynamic res = null;

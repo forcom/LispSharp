@@ -53,7 +53,7 @@ namespace Lisp {
 
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse(@"(let ((+ -) (- +))     (display (+ 4 3))     (display (- 4 3))     (setf! - *)     (display (- 4 3)))(display (+ 4 3))(display (- 4 3))");
+                List<object> parsed = LispParser.Parse(@"(display (((lambda (a) (lambda (b) (/ a b))) 9) 3))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }
