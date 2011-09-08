@@ -116,9 +116,6 @@ namespace Lisp
             else if (expression is List<object>)
             {
                 List<object> lst = expression as List<object>;
-                //Symbol first;
-                //if (lst[0] is Symbol) throw new UnknownElement();
-                //first = lst[0] as Symbol;
 
                 if (lst[0] is Symbol)
                 {
@@ -126,18 +123,19 @@ namespace Lisp
                         return (SpecialForms[lst[0] as Symbol] as special).Invoke(lst.GetRange(1, lst.Count - 1), environment);
                 }
 
+                List<object> args = new List<object>(lst.Count);
                 for (int i = 0; i < lst.Count; ++i)
                 {
                     if (lst[i] is Symbol && environment[lst[i] as Symbol] is Delegate)
-                        lst[i] = environment[lst[i] as Symbol];
-                    else lst[i] = Evaluate(lst[i], environment);
+                        args.Add(environment[lst[i] as Symbol]);
+                    else args.Add(Evaluate(lst[i], environment));
                 }
 
                 //if (!environment.ContainsKey(first))throw new UndefinedSymbol(first);
 
-                if (lst[0] is Delegate)
+                if (args[0] is Delegate)
                 {
-                    return (lst[0] as apply).Invoke(lst.GetRange(1, lst.Count - 1));
+                    return (args[0] as apply).Invoke(args.GetRange(1, args.Count - 1));
                 }
                 else
                 {
@@ -168,18 +166,11 @@ namespace Lisp
 
                     if (x[1] is Symbol)
                     {
-                        if (environment[x[1] as Symbol] is Delegate)
-                            environment.Add(x[0] as Symbol, (environment[x[1] as Symbol] as Delegate).Clone());
-                        else
-                            environment.Add(x[0] as Symbol, environment[x[1] as Symbol]);
+                        environment.Add(x[0] as Symbol, environment[x[1] as Symbol]);
                     }
                     else
                     {
-                        dynamic res = Evaluate(x[1], y);
-                        if (res is Delegate)
-                            environment.Add(x[0] as Symbol, (res as Delegate).Clone());
-                        else
-                            environment.Add(x[0] as Symbol, res);
+                        environment.Add(x[0] as Symbol, Evaluate(x[1], y));
                     }
                     return null;
                 }));
@@ -192,15 +183,16 @@ namespace Lisp
                 {
                     if (x.Count != 2) throw new ArgumentException();
                     if (!(x[0] is List<object>)) throw new ArgumentException();
-                    Environment child = new Environment(y);
-                    List<object> args = x[0] as List<object>;
-                    for (int i = 0; i < args.Count; ++i)
-                    {
-                        if (!(args[i] is Symbol)) throw new ArgumentException();
-                        child.Add(args[i] as Symbol, null);
-                    }
                     apply lambda = a =>
                     {
+                        Environment child = new Environment(y);
+                        List<object> args = x[0] as List<object>;
+                        for (int i = 0; i < args.Count; ++i)
+                        {
+                            if (!(args[i] is Symbol)) throw new ArgumentException();
+                            child.Add(args[i] as Symbol, null);
+                        }
+
                         if (a.Count != args.Count) throw new ArgumentException();
                         for (int i = 0; i < args.Count; ++i)
                         {
@@ -344,8 +336,8 @@ namespace Lisp
             environment.Add(new Symbol("display"), (apply)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
-                if (x[0] is List<object>) Console.Write(ParsedList(x[0]));
-                else Console.Write(x[0]);
+                if (x[0] is List<object>) Console.Write(ParsedList(x[0]) + "\n");
+                else Console.Write(x[0] + "\n");
                 return null;
             }));
             environment.Add(new Symbol("newline"), (apply)(x =>

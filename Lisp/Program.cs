@@ -53,7 +53,12 @@ namespace Lisp {
 
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse(@"(display (((lambda (a) (lambda (b) (/ a b))) 9) 3))");
+                /*
+                (display ""--- Apply and Function as Value"")(define display2 display)(apply display2 (quote (""Hello"")))(display2 ""Hello"")(display ""--- Lexical Scope (let)"")(let ((+ -) (- +))     (display (+ 4 3))     (display (- 4 3))     (setf! - *)     (display (- 4 3)))(display (+ 4 3))(display (- 4 3))(display ""--- Lambda"")(display ((lambda (a b) (+ a b)) 1 2))(display ""--- Higher-Order Function"")(display ((lambda (op a b) (op a (op a b))) * 3 4))(display (((lambda () (lambda (a) (* a a)))) 3))(display ""--- Lexical Scope (lambda)"")(display (((lambda (a) (lambda (b) (/ a b))) 9) 3))
+                (define account        (lambda (balance)                (lambda (incr)                        (setf! balance (+ balance incr)))))(define hong (account 10))(define choi (account 5))(display (hong 0))(display (choi 0))(display (hong 10))(display (choi 5))
+                 */
+                List<object> parsed = LispParser.Parse(@"(display ""--- Apply and Function as Value"")(define display2 display)(apply display2 (quote (""Hello"")))(display2 ""Hello"")(display ""--- Lexical Scope (let)"")(let ((+ -) (- +))     (display (+ 4 3))     (display (- 4 3))     (setf! - *)     (display (- 4 3)))(display (+ 4 3))(display (- 4 3))(display ""--- Lambda"")(display ((lambda (a b) (+ a b)) 1 2))(display ""--- Higher-Order Function"")(display ((lambda (op a b) (op a (op a b))) * 3 4))(display (((lambda () (lambda (a) (* a a)))) 3))(display ""--- Lexical Scope (lambda)"")(display (((lambda (a) (lambda (b) (/ a b))) 9) 3))
+(define account        (lambda (balance)                (lambda (incr)                        (setf! balance (+ balance incr)))))(define hong (account 10))(define choi (account 5))(display (hong 0))(display (choi 0))(display (hong 10))(display (choi 5))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }
