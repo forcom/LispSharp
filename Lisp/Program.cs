@@ -53,7 +53,7 @@ namespace Lisp {
 
             public void Start ( ) {
                 //CallTest ( );
-                List<object> parsed = LispParser.Parse(@"(eval (quote (apply display (quote ((apply + (quote (1 2))))))))");
+                List<object> parsed = LispParser.Parse(@"(let ((+ -) (- +))     (display (+ 4 3))     (display (- 4 3))     (setf! - *)     (display (- 4 3)))(display (+ 4 3))(display (- 4 3))");
                 LispEvaluator.StartEvaluate(parsed);
                 while ( true ) {
                 }

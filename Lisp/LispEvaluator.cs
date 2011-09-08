@@ -62,7 +62,9 @@ namespace Lisp
                 }
                 set
                 {
-                    base[key] = value;
+                    if (base.ContainsKey(key)) base[key] = value;
+                    else if (Parent.ContainsKey(key)) Parent[key] = value;
+                    else throw new KeyNotFoundException();
                 }
             }
         }
@@ -178,6 +180,44 @@ namespace Lisp
                 }));
                 SpecialForms.Add(new Symbol("let"), (special)((x, y) =>
                 {
+                    if (x.Count <= 2) throw new ArgumentException();
+                    if (!(x[0] is List<object>)) throw new ArgumentException();
+                    Environment child = new Environment(y);
+                    foreach (List<object> i in x[0] as List<object>)
+                    {
+                        if (i.Count != 2) throw new ArgumentException();
+                        if (!(i[0] is Symbol)) throw new ArgumentException();
+                        if (i[1] is Symbol)
+                        {
+                            if (!y.ContainsKey(i[1] as Symbol)) throw new ArgumentException();
+                            child.Add(i[0] as Symbol, y[i[1] as Symbol]);
+                        }
+                        else
+                        {
+                            child.Add(i[0] as Symbol, i[1]);
+                        }
+                    }
+                    dynamic res = null;
+                    for (int i = 1; i < x.Count; ++i)
+                    {
+                        res = Evaluate(x[i], child);
+                    }
+                    return res;
+                }));
+                SpecialForms.Add(new Symbol("setf!"), (special)((x, y) =>
+                {
+                    if (x.Count != 2) throw new ArgumentException();
+                    if (!(x[0] is Symbol)) throw new ArgumentException();
+                    if (!y.ContainsKey(x[0] as Symbol)) throw new UndefinedSymbol(x[0] as Symbol);
+                    if (x[1] is Symbol)
+                    {
+                        if (!y.ContainsKey(x[1] as Symbol)) throw new UndefinedSymbol(x[1] as Symbol);
+                        y[x[0] as Symbol] = y[x[1] as Symbol];
+                    }
+                    else
+                    {
+                        y[x[0] as Symbol] = Evaluate(x[1], y);
+                    }
                     return null;
                 }));
             }
@@ -272,17 +312,13 @@ namespace Lisp
             environment.Add(new Symbol("display"), (apply)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
-                Console.Write(ParsedList(x[0]));
+                if (x[0] is List<object>) Console.Write(ParsedList(x[0]));
+                else Console.Write(x[0]);
                 return null;
             }));
             environment.Add(new Symbol("newline"), (apply)(x =>
             {
                 Console.WriteLine();
-                return null;
-            }));
-            environment.Add(new Symbol("setf!"), (apply)(x =>
-            {
-                //부모 env로 올라가면서 값을 교체
                 return null;
             }));
 
