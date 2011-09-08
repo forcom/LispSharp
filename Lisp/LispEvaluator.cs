@@ -79,7 +79,7 @@ namespace Lisp
             }
         }
 
-        public static IDictionary<Symbol, Func<List<object>, Environment, dynamic>> SpecialForms = CreateSpecialForms();
+        public static IDictionary<Symbol, Func<List<object>, Func<Environment, dynamic>>> SpecialForms = CreateSpecialForms();
 
         public static string ParsedList(object node)
         {
@@ -103,22 +103,25 @@ namespace Lisp
 
         public static dynamic Evaluate(object expression, Environment environment)
         {
+            List<Func<Environment, dynamic>> analyzed = (from n in expression as List<object> select Analyze(n)).ToList();
+            dynamic res = null;
+            for (int i = 0; i < analyzed.Count; ++i)
+            {
+                res = analyzed[i](environment);
+            }
+            return res;
+        }
+
+        public static Func<Environment, dynamic> Analyze(object expression) {
             if (expression is Symbol)
             {
-                Symbol exp = expression as Symbol;
-
-                if (!environment.ContainsKey(exp))
-                    throw new UndefinedSymbol(exp);
-                if (environment[exp] is Delegate)
+                return (Func<Environment, dynamic>)(environment =>
                 {
-                    return (environment[exp] as Func<List<object>, dynamic>)(new List<object>(new object[] { }));
-                }
-                else if (environment[exp] is Symbol)
-                {
-                    return Evaluate(environment[exp], environment);
-                }
-                else
+                    Symbol exp = expression as Symbol;
+                    if (!environment.ContainsKey(exp))
+                        throw new UndefinedSymbol(exp);
                     return environment[exp];
+                });
             }
             else if (expression is List<object>)
             {
@@ -127,126 +130,135 @@ namespace Lisp
                 if (lst[0] is Symbol)
                 {
                     if (SpecialForms.ContainsKey(lst[0] as Symbol))
-                        return (SpecialForms[lst[0] as Symbol] as Func<List<object>, Environment, dynamic>)(lst.GetRange(1, lst.Count - 1), environment);
-                }
-
-                List<object> args = new List<object>(lst.Count);
-                for (int i = 0; i < lst.Count; ++i)
-                {
-                    if (lst[i] is Symbol && environment[lst[i] as Symbol] is Delegate)
-                        args.Add(environment[lst[i] as Symbol]);
-                    else args.Add(Evaluate(lst[i], environment));
-                }
-
-                if (args[0] is Delegate)
-                {
-                    return (args[0] as Func<List<object>, dynamic>)(args.GetRange(1, args.Count - 1));
-                }
-                else
-                {
-                    throw new NotFunctionApply();
-                }
-            }
-            return expression;
-        }
-
-        public static IDictionary<Symbol, Func<List<object>, Environment, dynamic>> CreateSpecialForms()
-        {
-            var SpecialForms = new Dictionary<Symbol, Func<List<object>, Environment, dynamic>>();
-            SpecialForms.Add(new Symbol("if"), (Func<List<object>, Environment, dynamic>)((x, y) =>
-            {
-                if (x.Count != 2 && x.Count != 3)
-                    throw new ArgumentException();
-                if (Evaluate(x[0], y))
-                    return Evaluate(x[1], y);
-                else if (x.Count == 3)
-                    return Evaluate(x[2], y);
-                return null;
-            }));
-            SpecialForms.Add(new Symbol("define"), (Func<List<object>, Environment, dynamic>)((x, y) =>
-            {
-                if (x.Count != 2) throw new ArgumentException();
-                if (!(x[0] is Symbol)) throw new ArgumentException();
-
-                if (x[1] is Symbol)
-                {
-                    y.Add(x[0] as Symbol, y[x[1] as Symbol]);
-                }
-                else
-                {
-                    y.Add(x[0] as Symbol, Evaluate(x[1], y));
-                }
-                return null;
-            }));
-            SpecialForms.Add(new Symbol("quote"), (Func<List<object>, Environment, dynamic>)((x, y) =>
-            {
-                if (x.Count != 1) throw new ArgumentException();
-                return x[0];
-            }));
-            SpecialForms.Add(new Symbol("lambda"), (Func<List<object>, Environment, dynamic>)((x, y) =>
-            {
-                if (x.Count != 2) throw new ArgumentException();
-                if (!(x[0] is List<object>)) throw new ArgumentException();
-                Func<List<object>, dynamic> lambda = a =>
-                {
-                    Environment child = new Environment(y);
-                    List<object> args = x[0] as List<object>;
-                    for (int i = 0; i < args.Count; ++i)
                     {
-                        if (!(args[i] is Symbol)) throw new ArgumentException();
-                        child.Add(args[i] as Symbol, null);
+                        Func<Environment, dynamic> res = SpecialForms[lst[0] as Symbol](lst.GetRange(1, lst.Count - 1));
+                        return (Func<Environment, dynamic>)(environment => res(environment as Environment));
                     }
+                }
 
-                    if (a.Count != args.Count) throw new ArgumentException();
-                    for (int i = 0; i < args.Count; ++i)
-                    {
-                        child[args[i] as Symbol] = a[i];
-                    }
-                    return Evaluate(x[1], child);
-                };
-                return lambda;
-            }));
-            SpecialForms.Add(new Symbol("let"), (Func<List<object>, Environment, dynamic>)((x, y) =>
-            {
-                if (x.Count <= 2) throw new ArgumentException();
-                if (!(x[0] is List<object>)) throw new ArgumentException();
-                Environment child = new Environment(y);
-                foreach (List<object> i in x[0] as List<object>)
+                List<Func<Environment, dynamic>> args = (from n in lst select Analyze(n)).ToList();
+                
+                return (Func<Environment, dynamic>)(environment =>
                 {
-                    if (i.Count != 2) throw new ArgumentException();
-                    if (!(i[0] is Symbol)) throw new ArgumentException();
-                    if (i[1] is Symbol)
+                    List<object> procArgs = (from n in args select n(environment)).ToList();
+                    if (procArgs[0] is Delegate)
                     {
-                        if (!y.ContainsKey(i[1] as Symbol)) throw new ArgumentException();
-                        child.Add(i[0] as Symbol, y[i[1] as Symbol]);
+                        return (procArgs[0] as Func<List<object>, dynamic>)(procArgs.GetRange(1, procArgs.Count - 1));
                     }
                     else
                     {
-                        child.Add(i[0] as Symbol, i[1]);
+                        throw new NotFunctionApply();
                     }
-                }
-                dynamic res = null;
-                for (int i = 1; i < x.Count; ++i)
-                {
-                    res = Evaluate(x[i], child);
-                }
-                return res;
+                });
+            }
+            return (Func<Environment, dynamic>)(x => expression);
+        }
+
+        public static Dictionary<Symbol, Func<List<object>, Func<Environment, dynamic>>> CreateSpecialForms()
+        {
+            var SpecialForms = new Dictionary<Symbol, Func<List<object>, Func<Environment, dynamic>>>();
+            SpecialForms.Add(new Symbol("if"), (Func<List<object>, Func<Environment, dynamic>>)(x =>
+            {
+                if (x.Count != 2 && x.Count != 3)
+                    throw new ArgumentException();
+                if (x.Count == 2) x.Add(null);
+
+                Func<Environment, dynamic> res = Analyze(x[0]);
+                Func<Environment, dynamic> trueValue = Analyze(x[1]);
+                Func<Environment, dynamic> falseValue = Analyze(x[2]);
+
+                return (Func<Environment, dynamic>)(y => res(y) ? trueValue(y) : falseValue(y));
             }));
-            SpecialForms.Add(new Symbol("setf!"), (Func<List<object>, Environment, dynamic>)((x, y) =>
+            SpecialForms.Add(new Symbol("define"), (Func<List<object>, Func<Environment, dynamic>>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 if (!(x[0] is Symbol)) throw new ArgumentException();
-                if (!y.ContainsKey(x[0] as Symbol)) throw new UndefinedSymbol(x[0] as Symbol);
+
                 if (x[1] is Symbol)
                 {
-                    if (!y.ContainsKey(x[1] as Symbol)) throw new UndefinedSymbol(x[1] as Symbol);
-                    y[x[0] as Symbol] = y[x[1] as Symbol];
+                    return (Func<Environment, dynamic>)(y =>
+                    {
+                        y.Add(x[0] as Symbol, y[x[1] as Symbol]);
+                        return null;
+                    });
                 }
                 else
                 {
-                    y[x[0] as Symbol] = Evaluate(x[1], y);
+                    Func<Environment, dynamic> res = Analyze(x[1]);
+                    return (Func<Environment, dynamic>)(y =>
+                    {
+                        y.Add(x[0] as Symbol, res(y));
+                        return null;
+                    });
                 }
-                return y[x[0] as Symbol];
+            }));
+            SpecialForms.Add(new Symbol("quote"), (Func<List<object>, Func<Environment, dynamic>>)(x =>
+            {
+                if (x.Count != 1) throw new ArgumentException();
+                return (Func<Environment, dynamic>)(y => x[0]);
+            }));
+            SpecialForms.Add(new Symbol("lambda"), (Func<List<object>, Func<Environment, dynamic>>)(x =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                if (!(x[0] is List<object>)) throw new ArgumentException();
+
+                Func<Environment, dynamic> res = Analyze(x[1]);
+
+                return (Func<Environment, dynamic>)(y =>
+                {
+                    Func<List<object>, dynamic> lambda = a =>
+                    {
+                        Environment child = new Environment(y);
+                        List<object> args = x[0] as List<object>;
+                        for (int i = 0; i < args.Count; ++i)
+                        {
+                            if (!(args[i] is Symbol)) throw new ArgumentException();
+                            child.Add(args[i] as Symbol, null);
+                        }
+
+                        if (a.Count != args.Count) throw new ArgumentException();
+                        for (int i = 0; i < args.Count; ++i)
+                        {
+                            child[args[i] as Symbol] = a[i];
+                        }
+                        return res(child);
+                    };
+                    return lambda;
+                });
+            }));
+            SpecialForms.Add(new Symbol("let"), (Func<List<object>, Func<Environment, dynamic>>)(x =>
+            {
+                if (x.Count <= 2) throw new ArgumentException();
+                if (!(x[0] is List<object>)) throw new ArgumentException();
+
+                var args = (from n in x.GetRange(1, x.Count - 1) select Analyze(n)).ToList();
+
+                return (Func<Environment, dynamic>)(y =>
+                {
+                    Environment child = new Environment(y);
+                    foreach (List<object> i in x[0] as List<object>)
+                    {
+                        if (i.Count != 2) throw new ArgumentException();
+                        if (!(i[0] is Symbol)) throw new ArgumentException();
+                        if (i[1] is Symbol)
+                        {
+                            if (!y.ContainsKey(i[1] as Symbol)) throw new ArgumentException();
+                            child.Add(i[0] as Symbol, y[i[1] as Symbol]);
+                        }
+                        else
+                        {
+                            child.Add(i[0] as Symbol, i[1]);
+                        }
+                    }
+                    return (from n in args select n(child)).Last();
+                });
+            }));
+            SpecialForms.Add(new Symbol("setf!"), (Func<List<object>, Func<Environment, dynamic>>)(x =>
+            {
+                if (x.Count != 2) throw new ArgumentException();
+                if (!(x[0] is Symbol)) throw new ArgumentException();
+                Func<Environment, dynamic> res = Analyze(x[1]);
+                return (Func<Environment, dynamic>)(y => y[x[0] as Symbol] = res(y));
             }));
             return SpecialForms;
         }
@@ -360,17 +372,6 @@ namespace Lisp
             environment.Add(new Symbol("nil"), null);
 
             return environment;
-        }
-
-        public static dynamic StartEvaluate(List<object> expression, Environment environment)
-        {
-            dynamic res = null;
-
-            for (int i = 0; i < expression.Count; ++i)
-            {
-                res = Evaluate(expression[i], environment);
-            }
-            return res;
         }
     }
 }

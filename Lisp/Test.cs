@@ -118,7 +118,7 @@ namespace Lisp {
             });
 
             List<object> code = LispParser.Parse(test);
-            LispEvaluator.StartEvaluate(code, custom);
+            LispEvaluator.Evaluate(code, custom);
             string execResult = buffer.ToString();
 
             if (ConsoleWrite)
