@@ -1,4 +1,14 @@
-﻿using System;
+﻿/*
+ * LispEvaluator.cs
+ *  - Lisp# Evaluate Module
+ * 
+ * Created by SeungYong, Yoon
+ * 
+ * Created in 2011.09.05
+ * Last Modified in 2011.09.08
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -69,10 +79,7 @@ namespace Lisp
             }
         }
 
-        public delegate dynamic apply(List<object> list);
-        public delegate dynamic special(List<object> list, Environment environment);
-
-        public static IDictionary<Symbol, special> SpecialForms = CreateSpecialForms();
+        public static IDictionary<Symbol, Func<List<object>, Environment, dynamic>> SpecialForms = CreateSpecialForms();
 
         public static string ParsedList(object node)
         {
@@ -104,7 +111,7 @@ namespace Lisp
                     throw new UndefinedSymbol(exp);
                 if (environment[exp] is Delegate)
                 {
-                    return (environment[exp] as apply).Invoke(new List<object>(new object[] { }));
+                    return (environment[exp] as Func<List<object>, dynamic>)(new List<object>(new object[] { }));
                 }
                 else if (environment[exp] is Symbol)
                 {
@@ -120,7 +127,7 @@ namespace Lisp
                 if (lst[0] is Symbol)
                 {
                     if (SpecialForms.ContainsKey(lst[0] as Symbol))
-                        return (SpecialForms[lst[0] as Symbol] as special).Invoke(lst.GetRange(1, lst.Count - 1), environment);
+                        return (SpecialForms[lst[0] as Symbol] as Func<List<object>, Environment, dynamic>)(lst.GetRange(1, lst.Count - 1), environment);
                 }
 
                 List<object> args = new List<object>(lst.Count);
@@ -131,11 +138,9 @@ namespace Lisp
                     else args.Add(Evaluate(lst[i], environment));
                 }
 
-                //if (!environment.ContainsKey(first))throw new UndefinedSymbol(first);
-
                 if (args[0] is Delegate)
                 {
-                    return (args[0] as apply).Invoke(args.GetRange(1, args.Count - 1));
+                    return (args[0] as Func<List<object>, dynamic>)(args.GetRange(1, args.Count - 1));
                 }
                 else
                 {
@@ -145,10 +150,10 @@ namespace Lisp
             return expression;
         }
 
-        public static IDictionary<Symbol, special> CreateSpecialForms()
+        public static IDictionary<Symbol, Func<List<object>, Environment, dynamic>> CreateSpecialForms()
         {
-            var SpecialForms = new Dictionary<Symbol, special>();
-            SpecialForms.Add(new Symbol("if"), (special)((x, y) =>
+            var SpecialForms = new Dictionary<Symbol, Func<List<object>, Environment, dynamic>>();
+            SpecialForms.Add(new Symbol("if"), (Func<List<object>, Environment, dynamic>)((x, y) =>
             {
                 if (x.Count != 2 && x.Count != 3)
                     throw new ArgumentException();
@@ -158,7 +163,7 @@ namespace Lisp
                     return Evaluate(x[2], y);
                 return null;
             }));
-            SpecialForms.Add(new Symbol("define"), (special)((x, y) =>
+            SpecialForms.Add(new Symbol("define"), (Func<List<object>, Environment, dynamic>)((x, y) =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 if (!(x[0] is Symbol)) throw new ArgumentException();
@@ -173,16 +178,16 @@ namespace Lisp
                 }
                 return null;
             }));
-            SpecialForms.Add(new Symbol("quote"), (special)((x, y) =>
+            SpecialForms.Add(new Symbol("quote"), (Func<List<object>, Environment, dynamic>)((x, y) =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 return x[0];
             }));
-            SpecialForms.Add(new Symbol("lambda"), (special)((x, y) =>
+            SpecialForms.Add(new Symbol("lambda"), (Func<List<object>, Environment, dynamic>)((x, y) =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 if (!(x[0] is List<object>)) throw new ArgumentException();
-                apply lambda = a =>
+                Func<List<object>, dynamic> lambda = a =>
                 {
                     Environment child = new Environment(y);
                     List<object> args = x[0] as List<object>;
@@ -201,7 +206,7 @@ namespace Lisp
                 };
                 return lambda;
             }));
-            SpecialForms.Add(new Symbol("let"), (special)((x, y) =>
+            SpecialForms.Add(new Symbol("let"), (Func<List<object>, Environment, dynamic>)((x, y) =>
             {
                 if (x.Count <= 2) throw new ArgumentException();
                 if (!(x[0] is List<object>)) throw new ArgumentException();
@@ -227,7 +232,7 @@ namespace Lisp
                 }
                 return res;
             }));
-            SpecialForms.Add(new Symbol("setf!"), (special)((x, y) =>
+            SpecialForms.Add(new Symbol("setf!"), (Func<List<object>, Environment, dynamic>)((x, y) =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 if (!(x[0] is Symbol)) throw new ArgumentException();
@@ -250,45 +255,45 @@ namespace Lisp
         {
             Environment environment = new Environment();
 
-            environment.Add(new Symbol("+"), (apply)(x =>
+            environment.Add(new Symbol("+"), (Func<List<object>, dynamic>)(x =>
                 x.Aggregate((dynamic a, dynamic b) => a + b)));
-            environment.Add(new Symbol("-"), (apply)(x =>
+            environment.Add(new Symbol("-"), (Func<List<object>, dynamic>)(x =>
                 x.Aggregate((dynamic a, dynamic b) => a - b)));
-            environment.Add(new Symbol("*"), (apply)(x =>
+            environment.Add(new Symbol("*"), (Func<List<object>, dynamic>)(x =>
                 x.Aggregate((dynamic a, dynamic b) => a * b)));
-            environment.Add(new Symbol("/"), (apply)(x =>
+            environment.Add(new Symbol("/"), (Func<List<object>, dynamic>)(x =>
                 x.Aggregate((dynamic a, dynamic b) => a / b)));
-            environment.Add(new Symbol("%"), (apply)(x =>
+            environment.Add(new Symbol("%"), (Func<List<object>, dynamic>)(x =>
                 x.Aggregate((dynamic a, dynamic b) => a % b)));
-            environment.Add(new Symbol("="), (apply)(x =>
+            environment.Add(new Symbol("="), (Func<List<object>, dynamic>)(x =>
                 x.Distinct().Count() == 1));
-            environment.Add(new Symbol(">"), (apply)(x =>
+            environment.Add(new Symbol(">"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 return (dynamic)x[0] > (dynamic)x[1];
             }));
-            environment.Add(new Symbol("<"), (apply)(x =>
+            environment.Add(new Symbol("<"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 return (dynamic)x[0] < (dynamic)x[1];
             }));
-            environment.Add(new Symbol(">="), (apply)(x =>
+            environment.Add(new Symbol(">="), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 return (dynamic)x[0] >= (dynamic)x[1];
             }));
-            environment.Add(new Symbol("<="), (apply)(x =>
+            environment.Add(new Symbol("<="), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 return (dynamic)x[0] <= (dynamic)x[1];
             }));
-            environment.Add(new Symbol("!"), (apply)(x =>
+            environment.Add(new Symbol("!"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 return !(bool)x[0];
             }));
 
-            environment.Add(new Symbol("car"), (apply)(x =>
+            environment.Add(new Symbol("car"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 if (!(x[0] is List<object>)) throw new ArgumentException();
@@ -296,14 +301,14 @@ namespace Lisp
 
                 return (x[0] as List<object>)[0];
             }));
-            environment.Add(new Symbol("cdr"), (apply)(x =>
+            environment.Add(new Symbol("cdr"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 if (!(x[0] is List<object>)) throw new ArgumentException();
                 if ((x[0] as List<object>).Count == 0) throw new ArgumentNullException();
                 return (x[0] as List<object>).GetRange(1, (x[0] as List<object>).Count - 1);
             }));
-            environment.Add(new Symbol("cons"), (apply)(x =>
+            environment.Add(new Symbol("cons"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 dynamic a = x[0];
@@ -317,34 +322,34 @@ namespace Lisp
                 else
                     return new List<object>(new object[] { a, b });
             }));
-            environment.Add(new Symbol("list"), (apply)(x => x));
+            environment.Add(new Symbol("list"), (Func<List<object>, dynamic>)(x => x));
 
-            environment.Add(new Symbol("null?"), (apply)(x =>
+            environment.Add(new Symbol("null?"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 if (!(x[0] is List<object>)) throw new ArgumentException();
                 return (x[0] as List<object>).Count == 1;
             }));
-            environment.Add(new Symbol("eval"), (apply)(x =>
+            environment.Add(new Symbol("eval"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 return Evaluate(x[0], environment);
             }));
-            environment.Add(new Symbol("apply"), (apply)(x =>
+            environment.Add(new Symbol("apply"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 2) throw new ArgumentException();
                 if (!(x[0] is Delegate)) throw new ArgumentException();
                 return Apply(x);
             }));
 
-            environment.Add(new Symbol("display"), (apply)(x =>
+            environment.Add(new Symbol("display"), (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 if (x[0] is List<object>) Console.Write(ParsedList(x[0]) + "\n");
                 else Console.Write(x[0] + "\n");
                 return null;
             }));
-            environment.Add(new Symbol("newline"), (apply)(x =>
+            environment.Add(new Symbol("newline"), (Func<List<object>, dynamic>)(x =>
             {
                 Console.WriteLine();
                 return null;

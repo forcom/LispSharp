@@ -5,7 +5,7 @@
  * Created by SeungYong, Yoon
  * 
  * Created in 2011.09.04
- * Last Modified in 2011.09.04
+ * Last Modified in 2011.09.08
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace Lisp {
             }
             catch (Exception e)
             {
-                return resultString != e.Message;
+                return NormalizeNL(resultString) != NormalizeNL(e.Message);
             }
 
             string[] result = new string[] { LispParser.TestParsed(code), "", LispParser.TestParsedType(code) };
@@ -109,7 +109,7 @@ namespace Lisp {
 
             StringWriter buffer = new StringWriter();
             var custom = LispEvaluator.CreateInitialEnvironment();
-            custom[new Symbol("display")] = (LispEvaluator.apply)(x =>
+            custom[new Symbol("display")] = (Func<List<object>, dynamic>)(x =>
             {
                 if (x.Count != 1) throw new ArgumentException();
                 if (x[0] is List<object>) buffer.WriteLine(LispEvaluator.ParsedList(x[0]));
